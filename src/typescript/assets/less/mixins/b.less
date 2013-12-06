@@ -1,0 +1,568 @@
+/*
+
+A collection of useful mixins that are very useful when
+architecturing sites and creating complex layouts. 
+
+Simply add as a class mixin to your own selectors.
+
+Contains work from : 
+
+* html5BoilerPlate - 
+* 3L.Less 	- mateuszkocz.github.io/3l
+* Preboot 	- github.com/mdo/preboot
+* Normalize - 
+* Reset 	- 
+* Clearfix 	- 
+* Pure CSS 	- pure.io
+
+As well as input from : 
+* Denis Leblanc - denisleblanc.com/
+* - www.sitepoint.com/eight-definitive-font-stacks/
+*/
+
+// RESET & NORMALISE ===========================================
+.normalize(){article,aside,details,figcaption,figure,footer,header,hgroup,main,nav,section,summary{display:block}audio,canvas,video{display:inline-block}audio:not([controls]){display:none;height:0}[hidden]{display:none}html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}a:focus{outline:thin dotted}a:active,a:hover{outline:0}h1{font-size:2em;margin:.67em 0}abbr[title]{border-bottom:1px dotted}b,strong{font-weight:bold}dfn{font-style:italic}hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0}mark{background:#ff0;color:#000}code,kbd,pre,samp{font-family:monospace,serif;font-size:1em}pre{white-space:pre-wrap}q{quotes:"\201C" "\201D" "\2018" "\2019"}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sup{top:-0.5em}sub{bottom:-0.25em}img{border:0}svg:not(:root){overflow:hidden}figure{margin:0}fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}legend{border:0;padding:0}button,input,select,textarea{font-family:inherit;font-size:100%;margin:0}button,input{line-height:normal}button,select{text-transform:none}button,html input[type="button"],input[type="reset"],input[type="submit"]{-webkit-appearance:button;cursor:pointer}button[disabled],html input[disabled]{cursor:default}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}input[type="search"]{-webkit-appearance:textfield;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box}input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit-search-decoration{-webkit-appearance:none}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}textarea{overflow:auto;vertical-align:top}table{border-collapse:collapse;border-spacing:0}}
+.reset() {html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td,article,aside,canvas,details,embed,figure,figcaption,footer,header,hgroup,menu,nav,output,ruby,section,summary,time,mark,audio,video{margin:0;padding:0;border:0;font-size:100%;font:inherit;vertical-align:baseline}article,aside,details,figcaption,figure,footer,header,hgroup,menu,nav,section{display:block}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}table{border-collapse:collapse;border-spacing:0}}
+
+
+
+// TYPOGRAPHY & TEXT ===========================================
+
+// initial variables set-up
+@font-size-browser-default: 16;
+
+// You can override the line height (baseline) :
+@line-height: 24;
+
+
+// FONTS -------------------------------------------------------
+// Some of the fonts, like: Garamond, Baskerville and Didot are not as readable on screen as Georgia. 
+
+// Due to smaller x-height; Caslon, Didot, Garamond, Baskerville and Hoefler Text should be set 
+// at *minimum* of 14 pixels or above.
+// Lucida Grande, Futura and Tahoma are mechanically obliqued to fake an italic.
+// Geneva, Baskerville Old Face and Big Caslon has no bold and italic. They are faked to bold and italic.
+// Avoid using Helvetica or Helvetica Neue for body text, _especially below 14px_.
+// Futura, Gill Sans and Franklin Gothic Medium should be carefully stacked and used because of their unusual weight.
+// For more info goto : http://www.awayback.com/revised-font-stack/
+
+// SANS SERIF (no curvy tails on letters) : ---------------------------------------------------------------------------
+
+// Breakpoints
+// ------------------------- Source: http://blog.scur.pl/2012/06/variable-media-queries-less-css/
+@highdensity: ~"only screen and (-webkit-min-device-pixel-ratio: 1.5)",
+              ~"only screen and (min--moz-device-pixel-ratio: 1.5)",
+              ~"only screen and (-o-min-device-pixel-ratio: 3/2)",
+              ~"only screen and (min-device-pixel-ratio: 1.5)";
+@mobile:      ~"only screen and (max-width: 529px)";
+@tablet:      ~"only screen and (min-width: 530px) and (max-width: 949px)";
+@desktop:     ~"only screen and (min-width: 950px) and (max-width: 1128px)";
+@desktop-xl:  ~"only screen and (min-width: 1129px)";
+
+// Sans-serif specific font-stacks
+@font-family-arial: 				Arial, "Helvetica Neue", Helvetica, sans-serif;
+@font-family-arial-black: 			"Arial Black", "Arial Bold", Gadget, sans-serif;
+@font-family-arial-narrow: 			"Arial Narrow", Arial, sans-serif;
+@font-family-arial-rounded: 		"Arial Rounded MT Bold", "Helvetica Rounded", Arial, sans-serif;
+@font-family-avant-garde: 			"Avant Garde", Avantgarde, "Century Gothic", CenturyGothic, "AppleGothic", sans-serif;
+@font-family-calibri: 				Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+@font-family-candara: 				Candara, Calibri, Segoe, "Segoe UI", Optima, Arial, sans-serif;
+@font-family-futura: 				Futura, "Trebuchet MS", Arial, sans-serif;
+@font-family-franklin-gothic: 		"Franklin Gothic Medium", Arial, sans-serif;
+@font-family-geneva: 				Geneva, Tahoma, Verdana, sans-serif;
+@font-family-gill-sans: 			"Gill Sans", "Gill Sans MT", Calibri, sans-serif;
+// NB. Avoid using Helvetica or Helvetica Neue for body text, especially below 14px
+@font-family-helvetica: 			"Helvetica Neue", Helvetica, Arial, sans-serif;
+@font-family-lucida-grande: 		"Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana, sans-serif;
+@font-family-optima: 				Optima, Segoe, "Segoe UI", Candara, Calibri, Arial, sans-serif;
+@font-family-segoe: 				Segoe, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+@font-family-tahoma: 				Tahoma, Geneva, Verdana, sans-serif;
+@font-family-trebuchet: 			"Trebuchet MS", "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Tahoma, sans-serif;
+@font-family-verdana: 				Corbel, "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", "DejaVu Sans", "Bitstream Vera Sans", "Liberation Sans", Verdana, "Verdana Ref", sans-serif;
+.Verdana() { font-family:@font-family-verdana; }
+    
+// Cover all basis :
+// http://www.sitepoint.com/eight-definitive-font-stacks/
+@font-family-default-sans-serif:  	Frutiger, "Frutiger Linotype", Univers, Calibri, "Gill Sans", "Gill Sans MT", "Myriad Pro", Myriad, "DejaVu Sans Condensed", "Liberation Sans", "Nimbus Sans L", Tahoma, Geneva, "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+
+// SERIF (ligatures and accents in the newspaper stlye) : -------------------------------------------------------------
+
+// Serif specific font-stacks
+// Huge x-height!
+@font-family-baskerville: 			Baskerville, "Baskerville old face", "Hoefler Text", Garamond, "Times New Roman", serif;
+@font-family-bodoni: 				"Bodoni MT", Didot, "Didot LT STD", "Hoefler Text", Garamond, "Times New Roman", serif;
+@font-family-book-antiqua: 			"Book Antiqua", Palatino, "Palatino Linotype", "Palatino LT STD", Georgia, serif;
+@font-family-caslon: 				"Big Caslon", "Book Antiqua", "Palatino Linotype", Georgia, serif;
+@font-family-cambria: 				Cambria, Georgia, serif;
+@font-family-constantia: 			Constantia, Palatino, "Palatino Linotype", "Palatino LT STD", Georgia, serif;
+@font-family-didot: 				Didot, "Didot LT STD", "Hoefler Text", Garamond, "Times New Roman", serif;
+@font-family-georgia: 				Georgia, "Times New Roman", Times, serif;
+@font-family-garamond: 				Garamond, Baskerville, "Baskerville Old Face", "Hoefler Text", "Times New Roman", serif;
+@font-family-goudy: 				"Goudy Old Style", Garamond, "Big Caslon", "Times New Roman", serif;
+@font-family-hoefler: 				"Hoefler Text", "Baskerville old face", Garamond, "Times New Roman", serif;
+@font-family-lucida-bright: 		"Lucida Bright", Georgia, serif;
+@font-family-palatino: 				Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+
+@font-family-default-serif:       	@font-family-georgia;
+
+
+// SLAB (heavy letters and bold faces) ----------------------------------------------------
+@font-family-impact: 				Impact, Haettenschweiler, "Franklin Gothic Bold", Charcoal, "Helvetica Inserat", "Bitstream Vera Sans Bold", "Arial Black", sans-serif;
+.Impact() { font-family: @font-family-impact; }
+ 
+
+
+// MONOSPACE ----------------------------------------------------------------------------------------------------------
+@font-family-default-monospace:   	Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+@font-family-monaco:   				Monaco, Menlo, Consolas, "Courier New", monospace;
+
+
+
+// Shortcuts for defining stacks, families and fallbacks
+// A nice way to use a stack as the fallback to your web font...
+.font-family( @family; @fallback ){
+	@concatinated : @family , @fallback;
+	font-family:@concatinated;
+}
+
+.font-family( @family ){	font-family:@family; }
+
+
+// Set any element to use the default sans or serif
+// NB. You can overide the @font-family-sans-serif with your
+// own stack if you want to use these as universal setters
+.font-family-sans( ){				.font-family( @font-family-default-sans-serif );	}
+.font-family-sans( @family ){		.font-family( @family, @font-family-default-sans-serif );	}
+.sans( @family ){					.font-family-sans( @family );	}
+.sans(){    				        .font-family-sans();	}
+
+.font-family-serif(){				.font-family( @font-family-default-serif ); }
+.font-family-serif( @family ){		.font-family( @family, @font-family-default-serif ); }
+.serif( @family ){     				.font-family-serif( @family  ); }
+.serif(){     			        	.font-family-serif(); }
+
+.font-family-monospace( ){			.font-family( @font-family-default-monospace ); }
+.font-family-monospace( @family ){	.font-family( @family, @font-family-default-monospace ); }
+.monospace ( @family ){				.font-family-monospace( @family ); }
+.monospace (){    			        .font-family-monospace( ); }
+
+
+// Font Sizing with Rhymnic baseline
+
+// set-up the body font-size / line-height
+.setup-global-type( @line-height:@line-height) {
+    //margin-top: 0px + @line-height;
+	line-height: 0 + round(@line-height / @font-size-browser-default*10000) / 10000;
+	font-size: 0px + @font-size-browser-default;	
+}
+
+// font-size : Just as Pixels
+.font-size-px ( @size:0 ) {
+    font-size: 0px + @size;
+}
+
+// font-size : as REMs
+// NB. REMS are just like EMS except that they do not next styles
+// and therefore stay relative always to the root rather than their immediate parent
+.font-size-rem ( @size ) {
+    .font-size-px( @size );     // pixel fallback
+	font-size: 0rem + @size / @font-size-browser-default;
+}
+
+// font-size : as EMs
+// NB. You probably want to keep your headers and paragraphs cascading
+// so it is wise to use EMs for h1,h2,h3,h4,h5,h6,p...
+.font-size-em ( @size ) {
+    .font-size-px( @size );     // pixel fallback
+	font-size: 0em + @size / @font-size-browser-default;
+}
+
+
+// TODO : See if @size > @line-height and if so force margins
+// font-size : just font-size and line-height
+.font-size ( @size ) when ( @size < @line-height) {
+	.font-size-rem( @size );
+	line-height: 0 + round(@line-height / @size*10000) / 10000;
+}
+.font-size ( @size)  when ( @size > @line-height) {
+	.font-size-rem( @size );
+	line-height: 0 + round(@line-height*2 / @size*10000) / 10000;
+}
+
+// font-size : sticking on vertical rhythm
+.font-size-rhythm ( @size; @emsOrRems ) {
+    .font-size( @size, @emsOrRems );
+}
+
+// font-size : rythmic baseline respecting font-size
+.font-size ( @size; @emsOrRems ) {
+    // TODO : Conditional REM or EMs
+    .font-size( @size );
+	.margin-baseline();
+}
+
+
+
+// shortcuts to some common text styles...
+.bold (){		font-weight: bold; }
+.italic() {		font-style: italic; }
+
+.uppercase() {	text-transform: uppercase; }
+.lowercase() {	text-transform: lowercase; }
+
+.justify() {	text-align: justify; }
+
+// make text invisible yet selectable
+.text-hide() {	font: ~"0/0" a;	color: transparent;	text-shadow: none;	background-color: transparent;	border: 0; }
+
+// Truncate : trun...
+// Requires inline-block or block for proper styling
+// * Requires element to be block or inline-block level *
+.text-truncate() {  overflow: hidden;  text-overflow: ellipsis;  white-space: nowrap;	}
+
+// User can select?
+.user-select( @select:none ){    -webkit-user-select:@select;    -moz-user-select:@select;    -ms-user-select:@select;    user-select:@select; }
+
+// Hyphenation : (extra) hyphen-ation 
+.hyphens( @mode: auto ) {
+  word-wrap: break-word;
+  -webkit-hyphens: @mode;
+     -moz-hyphens: @mode;
+      -ms-hyphens: @mode;
+       -o-hyphens: @mode;
+          hyphens: @mode;
+}
+
+
+
+// LAYOUT =======================================================
+
+// SIZING -------------------------------------------------------
+// Sizing shortcuts
+.size(@width ; @height) {  width:@width;  height:@height; }
+// Square sizing (takes only one argument)
+.size(@size) {  .size(@size, @size);	}
+
+// Min-size
+.min-size(@size:100% ){
+	.min-size(@size,@size);
+}
+.min-size( @w:auto, @h:auto ){
+	min-width:@w;
+    min-height:@h;
+}
+// Max-size
+.max-size(@size:100% ){
+	.max-size(@size,@size);
+}
+.max-size( @w:auto, @h:auto ){
+	max-width:@w;
+    max-height:@h;
+}
+// Responsive images
+.responsive(){	max-width: 100%; 	height: auto; }
+
+
+// POSITIONING --------------------------------------------------
+
+.x( @left ){	left:@left; }
+.y( @top ){		top:@top; }
+
+.w( @width ){	width:@width }
+.h( @height ){	height:@height }
+
+// Absolute positioning 
+.position(  @top:auto; @right:auto; @bottom:auto; @left:auto )
+{
+	position:absolute;
+	top:@top;
+	left:@left;
+	bottom:@bottom;
+	right:@right;
+}
+
+// Position relative to the top left of the parent container
+.position( @top:auto; @left:auto ){ .position-tl( @top, @left ); }
+.position-tl( @top:auto; @left:auto ){	position:absolute;	top:@top;	left:@left; }
+.position-tl( @position:auto ){	.position-tl( @position, @position ); }
+
+
+// Position relative to the bottom and right of the parent container
+.position-tr( @top:auto; @right:auto ){	position:absolute;	top:@top;	right:@right; }
+.position-tr( @position:auto ){	.position-tr( @position, @position ); }
+
+
+// Position relative to the bottom and right of the parent container
+.position-br( @bottom:auto; @right:auto ){	position:absolute;	bottom:@bottom;	right:@right; }
+.position-br( @position:auto ){	.position-br( @position, @position ); }
+
+
+// Position relative to the bottom and right of the parent container
+.position-bl( @bottom:auto; @left:auto ){	position:absolute;	bottom:@bottom;	left:@left; }
+.position-bl( @position:auto ){	.position-br( @position, @position ); }
+
+// Center-align a block level element
+.centralize() {  display: block; .margins-lr( auto ); }
+
+
+// PADDING & MARGINS --------------------------------------------
+// Margins for asymetrical layouts - Individualised
+// NB. Useful for setting groups then overriding individually
+.margins( @top:auto; @right:auto; @bottom:auto; @left:auto ){	
+	margin-top:@top;
+	margin-right:@right;
+	margin-bottom:@bottom;
+	margin-left:@left;
+}
+
+// Margins for symetrical layouts
+// Margins : top = bottom, right = left
+.margins( @top:auto; @left:auto ){	margin:@top @left; }
+// Margins : All 4 margins equal!
+.margins( @margin:auto ){	margin:@margin; }
+
+// Margins Top & Bottom ONLY
+.margins-tb( @top:auto; @bottom:auto ){	margin-top:@top;	margin-bottom:@bottom; }
+.margins-tb( @margin:auto){	.margins-tb( @margin, @margin ); }
+// Margins Left & Right ONLY
+.margins-lr( @left:auto, @right:auto ){	margin-left:@left;	margin-right:@right; }
+.margins-lr( @margin:auto ){	.margins-lr( @margin, @margin ); }
+
+.margin-baseline(){
+    margin-bottom: 0px + @line-height;  // pixel fallback
+    margin-bottom: 0rem + (@line-height / @font-size-browser-default);
+}
+
+.centralise-datum( @w; @h ){
+	margin-top: -(@h/2) ;
+	margin-left: -(@w/2) ;
+}
+.centralise-datum( @diameter ){
+	.centralise-datum( @diameter, @diameter ) ;
+}
+// ACCESSIBILITY ----------------------------------------------
+
+// Hide from both screenreaders and browsers: h5bp.com/u
+.hidden () { display: none !important; visibility: hidden;}
+
+// Hide only visually, but have it available for screenreaders: h5bp.com/v
+.visuallyhidden () { border: 0;clip: rect(0 0 0 0);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}
+	
+// Extends the .visuallyhidden class to allow the element to be focusable when navigated to via the keyboard: h5bp.com/p
+// CAUTION! The .visuallyhidden class is included! If you want your object to be both
+// .visuallyhidden and .focusabe use only .focusable class.
+.focusable () { .visuallyhidden;&:active,&:focus{clip: auto; height: auto; margin: 0; overflow: visible; position: static; width: auto;}}
+
+// Hide visually and from screenreaders, but maintain layout.
+.invisible () { visibility: hidden; }
+
+// Contain floats: h5bp.com/q
+.clearfix () { *zoom:1;&:before,&:after{content:" ";display:table;}&:after{clear:both;} }
+
+
+// COLOURS ===========================================================================
+
+// When clicked and dragged over text, what colours should the rectangle and text be?
+.selection( @text-color ; @background-color ) {
+	&::-moz-selection {color: @text-color; background-color: @background-color;}
+	&::selection {color: @text-color; background-color: @background-color;}
+}
+
+// Placeholder text
+// Set the placeholder text color for inputs
+.placeholder(@color: @input-color-placeholder) {
+  &:-moz-placeholder            { color: @color; } // Firefox 4-18
+  &::-moz-placeholder           { color: @color; } // Firefox 19+
+  &:-ms-input-placeholder       { color: @color; } // Internet Explorer 10+
+  &::-webkit-input-placeholder  { color: @color; } // Safari and Chrome
+}
+
+
+// lots of shortcuts to create backgrounds!
+// colour / image / repetitions / position / scale
+.background(@color){
+	background-color:@color;
+}
+
+
+
+.background( @color; @image; @xposition; @yposition; @xrepotitions; @yrepositions; @xscale; @yscale ){
+	
+	.background-size ( @xscale, @yscale );
+}
+
+
+
+// a shortcut to a filter!
+// 3px 3px 0 0 rgba(0, 128, 0, 0.3)
+.glow( @xoffset:2px, @yoffset:2px, @blur:4px, @spread:4px, @colour:white ){
+	-webkit-box-shadow: @xoffset @yoffset @blur @spread @colour;
+    -moz-box-shadow: @xoffset @yoffset @blur @spread @colour;
+    box-shadow: @xoffset @yoffset @blur @spread @colour;
+}
+
+// GRID ==============================================================================
+/*
+// Defaults which you can freely override
+@column-width: 60;
+@gutter-width: 20;
+@columns: 12;
+
+// Utility variable — you should never need to modify this
+@gridsystem-width: (@column-width*@columns) + (@gutter-width*@columns) * 1px;
+
+// Set @total-width to 100% for a fluid layout
+@total-width: @gridsystem-width;
+@total-width: 100%;
+
+body() {
+	width: 100%;
+	.clearfix;
+}
+
+.row( @columns:@columns ) {
+	display: block;
+	width: @total-width*((@gutter-width + @gridsystem-width)/@gridsystem-width);
+	margin: 0 @total-width*(((@gutter-width*.5)/@gridsystem-width)*-1);
+	// *width: @total-width*((@gutter-width + @gridsystem-width)/@gridsystem-width)-@correction;
+	// *margin: 0 @total-width*(((@gutter-width*.5)/@gridsystem-width)*-1)-@correction;
+	.clearfix;
+}
+.column( @x,@columns:@columns ) {
+	display: inline;
+	float: left;
+	width: @total-width*((((@gutter-width+@column-width)*@x)-@gutter-width) / @gridsystem-width);
+	margin: 0 @total-width*((@gutter-width*.5)/@gridsystem-width);
+	// Prevent columns from collapsing when empty
+	min-height: 1px;
+	// *width: @total-width*((((@gutter-width+@column-width)*@x)-@gutter-width) / @gridsystem-width)-@correction;
+	// *margin: 0 @total-width*((@gutter-width*.5)/@gridsystem-width)-@correction;
+}
+
+.push( @offset:1 ) {  	margin-left: @total-width*(((@gutter-width+@column-width)*@offset) / @gridsystem-width) + @total-width*((@gutter-width*.5)/@gridsystem-width);}
+.pull( @offset:1 ) {	margin-right: @total-width*(((@gutter-width+@column-width)*@offset) / @gridsystem-width) + @total-width*((@gutter-width*.5)/@gridsystem-width);}
+*/
+
+
+// IMAGES =======================================================
+// Polyfiller for mozilla: use until redundant
+.background-size (...) {	-moz-background-size: @arguments;	background-size: @arguments; }
+
+// Clip an image into a frame
+.background-clip( @clip:padding-box ) {  -moz-background-clip: @clip;  -webkit-background-clip: @clip;  background-clip: @clip; }
+
+// Add an alphatransparency value to any background or border color (via Elyse Holladay)
+.background-translucent(@color: @white, @alpha: 1) {
+    background-color: hsla(hue(@color), saturation(@color), lightness(@color), @alpha);
+}
+
+.border-translucent(@color: @white, @alpha: 1) {
+    border-color: hsla(hue(@color), saturation(@color), lightness(@color), @alpha);
+    .background-clip(padding-box);
+}
+
+// Image replacement.
+.ir () {border: 0; overflow: hidden; background-color: transparent; *text-indent: -9999px; &:before {content: ""; display: block; width: 0; height: 100%;}}
+
+
+
+// 3d
+.translateZ (@z) {
+	-webkit-transform: translateZ(@z);
+	-moz-transform: translateZ(@z);
+	-ms-transform: translateZ(@z);
+	transform: translateZ(@z);
+}
+
+.rotateY (@y:0){
+	-webkit-transform: rotateY(@y);
+	transform: rotateY(@y);
+}
+.rotateZ (@z:0){
+	-webkit-transform: rotateZ(@z);
+	transform: rotateZ(@z);
+}
+
+// UTILS ========================================================
+.button() {
+    display: inline-block;
+    *display: inline;
+    zoom: 1;
+    line-height: normal;
+    white-space: nowrap;
+    vertical-align: baseline;
+    text-align: center;
+    cursor: pointer;
+	
+    -webkit-user-drag: none;
+	.user-select();
+	
+	font-size: 100%;
+	// stupid ie
+    *font-size: 90%;
+    *overflow: visible;
+    text-decoration: none;
+    -webkit-font-smoothing: antialiased;
+	
+	// stupid firefox
+	&::-moz-focus-inner {
+		padding: 0;
+		border: 0
+	}
+	
+	&:hover{
+		text-decoration: none;
+	}
+	
+	&:focus{
+		text-decoration: none;
+		outline: 0
+	}
+	
+	&:active{
+		
+	}
+}
+
+.disabled() {
+    border: 0;
+    cursor: not-allowed;
+}
+
+// Animations :
+// http://stackoverflow.com/questions/11551313/less-css-pass-mixin-as-a-parameter-to-another-mixin
+// .keyframes('.changeColor', some-name, my-from, my-to);
+// .keyframes('.changeFontSize', another-name, another-from, another-to);
+
+.keyframes(@selector, @name, @from, @to) {
+	
+    @newline: "\n"; // Newline
+	/*
+    .setVendor(@pre, @post, @vendor) {
+        (~"@{pre}@@{vendor}keyframes @{name} {@{newline}from") {
+            from:@from; 
+        }    
+        to  { 
+            to:@to;
+        }
+       .Local(){}
+       .Local() when (@post=1) {
+           (~"}@{newline}@{selector}") {
+              -moz-animation: @name;
+              -webkit-animation: @name;
+              -o-animation: @name;
+              -ms-animation: @name;
+              animation: @name;
+           } 
+       }    
+       .Local;
+    } 
+	
+    .setVendor(""            , 0,    "-moz-");
+    .setVendor(~"}@{newline}", 0, "-webkit-");
+    .setVendor(~"}@{newline}", 0,      "-o-");
+    .setVendor(~"}@{newline}", 0,     "-ms-");
+    .setVendor(~"}@{newline}", 1,         "");
+	*/
+}
