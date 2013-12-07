@@ -1,6 +1,7 @@
 ///<reference path="audiobus/definitions/jquery.d.ts" />
 ///<reference path="audiobus/DrumMachine.ts" />
 ///<reference path="audiobus/instruments/Sine.ts" />
+///<reference path="audiobus/instruments/BassDrum.ts" />
 ///<reference path="audiobus/inputs/Microphone.ts" />
 ///<reference path="audiobus/visualisation/SpectrumAnalyzer.ts" />
 
@@ -73,9 +74,10 @@ class Main
 $(document).ready(function(){
 	
 	var $matrix = $('#matrix'),
-		$content = $('#content');
+		$content = $('#content'),
+		buttonHtml = 'article.button';
+		
 	var timeout;	
-	var buttonHtml = 'article.button';
 	var steps = 16 ;
 	var notes = 16;
 	var quantity = steps * notes;
@@ -85,14 +87,18 @@ $(document).ready(function(){
 	var colours = [ "" ];
 	
 	var index = 0;
-	var octave = 6;
+	var octave = -10;
+	var bpm = 200;
 	
 	var drums  = new audiobus.DrumMachine();
 	
 	var sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
+	var sineB = new audiobus.instruments.Sine( drums.dsp, drums.gain );
+	var kick = new audiobus.instruments.BassDrum( drums.dsp, drums.gain );
+	var kickB = new audiobus.instruments.BassDrum( drums.dsp, drums.gain );
 	var netronome = new audiobus.Netronome( onEveryBeat, onProgress, this );
 	
-	var instruments = [];
+	var instruments = [ sine, kick, sineB, kickB ];
 	
 	// fetch all foreign beats associated with 
 	function getOthersBeats( column )
@@ -108,10 +114,10 @@ $(document).ready(function(){
 			if ( $existing ) 
 			{
 				output[ userName ] = true;
-				console.log("Found friend "+userName+" in this column");
+				//console.log("Found friend "+userName+" in this column");
 			}else{
 				// 
-				console.log("There are no other nodes for this friend ");
+				//console.log("There are no other nodes for this friend ");
 			}
 		}
 		return output;
@@ -132,10 +138,10 @@ $(document).ready(function(){
 			{
 				output += userName + " ";
 				
-				console.log("Found friend "+userName+" in this column");
+				//console.log("Found friend "+userName+" in this column");
 			}else{
 				// 
-				console.log("There are no other nodes for this friend ");
+				//console.log("There are no other nodes for this friend ");
 			}
 		}
 		return output;
@@ -154,10 +160,10 @@ $(document).ready(function(){
 		if ( $existing ) 
 		{
 			deselectBeat( $existing , user );
-			console.log("Found previous in this column at key "+key );
+			//console.log("Found previous in this column at key "+key );
 		}else{
 			// 
-			console.log("There is no entry in this column currently at key "+key );
+			//console.log("There is no entry in this column currently at key "+key );
 		}
 		
 		//var users = getOthersBeats( column );
@@ -203,7 +209,7 @@ $(document).ready(function(){
 			// fetch the user name
 			var userName = userNames[u];
 			var data = userName + index;
-			
+			var instrument;
 			
 			var $element =  $matrix.data( data );
 			if ($element)
@@ -215,7 +221,9 @@ $(document).ready(function(){
 				var position = parseInt( $element.attr( "alt" ) );
 				var column = position % steps;
 				var key = notes - (position / steps) >> 0;
-			
+				
+				instrument = instruments[ u ];
+				
 				console.log(userName+" Beat "+index+" in key "+key+" occurred checking "+data);
 			
 				// check to see if an existing note already exists
@@ -224,20 +232,24 @@ $(document).ready(function(){
 		
 				// check to see if there are any nodes registered here
 				//console.log( "Key found, not playing" );
+				
 				var frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );
-				sine.start( frequency );
+				
+				instrument.start( frequency );
 			}else{
 				//console.log("No Beat "+userName+" index:"+ index+" key:"+key);
 		
+				instrument = instruments[ u];
+				instrument.stop();
+				
 				//sine.stop();
 				if ( u == 0 ) 
 				{
-					console.log("Stopping note "+ $element);
-					sine.stop();
+					//console.log("Stopping note "+ $element);
+					
 					//sine.fadeOut();
 				}
 			}
-			
 		}
 		
 		// move bar to correct position 
@@ -245,12 +257,8 @@ $(document).ready(function(){
 		
 		console.log("Beat "+index+" occurred bar : "+(index*100/16));
 			
-		// find relevant step
-		index = (index+1) % steps;
-
-		
-		
-		return true;
+		index = (index+1) % steps;	// find relevant step
+		return index;
 	}
 	
 	// Beat commencing at point due to netronome...
@@ -416,6 +424,6 @@ $(document).ready(function(){
 	);
 	
 	onActualResize( null );
-	netronome.start( 120 );
+	netronome.start( bpm );
 	
 });

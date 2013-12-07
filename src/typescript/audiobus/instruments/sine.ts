@@ -25,7 +25,7 @@ module audiobus.instruments
 			//this.osc.frequency.setValueAtTime(1200, t);
 			//this.osc.frequency.linearRampToValueAtTime(800, t + 0.005);
 			
-			this.gain.gain.value = 1;
+			this.gain.gain.value = .5;
 			//this.gain.gain.cancelScheduledValues( t );
 			//this.gain.gain.setValueAtTime(0.5, t);
 			//this.gain.gain.exponentialRampToValueAtTime(0.5, 	t + 0.010);

@@ -595,6 +595,8 @@ footer {
   background-color: rgba(210, 208, 67, 0.5);
   height: 100%;
   display: block;
+  -webkit-transition: all 0.2s;
+  transition: all 0.2s;
 }
 article {
   border: 1px #10110c thin;
