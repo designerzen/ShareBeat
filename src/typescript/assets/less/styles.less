@@ -1,12 +1,14 @@
 @import url(mixins/3L.less);
 @import url(mixins/b.less);
 
+
 // Colours
-@blue:rgb( 56, 144, 163 );
-@green:rgb( 231, 237, 118 );
-@brown:rgb( 47, 13, 13 );
-@orange:rgb( 232, 173, 16 );
-@grey:rgb( 231, 224, 224 );
+@blue:rgb( 170, 36, 22 );
+@green:rgb( 210, 208, 67 );
+@brown:rgb( 16, 17, 12 );
+@orange:rgb( 205, 111, 21 );
+@grey:rgb( 220, 207, 152 );
+
 @translucent:rgba( 212, 229, 215, 0.9 );
 @translucent-dark:rgba( 56, 144, 163, 0.6 );
 @transparent:rgba( 0, 0, 0, 0 );
@@ -28,11 +30,12 @@
 
 @gap:1px;
 
-@beats:16;
+@steps:16;
 @keys:16;
 
 
 .normalize();
+@import url(typography.less);
 
 
 body{
@@ -42,7 +45,7 @@ body{
 	height:100%;
 	
 	color:@grey;
-	background-color:@blue;
+	background-color:@brown;
 	//background-image:url( "@{jpgs}clouds.jpg" );
 	//background-repeat:no-repeat;
 	//background-position:top center;
@@ -52,13 +55,22 @@ body{
 .selection( @brown,@green );
 
 a{
-	background-color:@links;
+	background-color:@grey;
 	text-decoration:none;
 	.transition (all 0.6s);
 	
 	&:hover{
-		background-color:@links;
+		background-color:@orange;
 		color:darken( @links , 20% );
 		text-decoration:none;
 	}
+}
+
+// square of squares
+@box-width : 100 / @steps;
+@box-height : 100 / @keys;
+
+.button{
+	
+	.button();
 }

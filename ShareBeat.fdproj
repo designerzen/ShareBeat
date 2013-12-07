@@ -26,7 +26,7 @@
     <hidden path="obj" />
   </hiddenPaths>
   <!-- Executed before build -->
-  <preBuildCommand>"%APPDATA%\npm\tsc.cmd" --out "bin/ShareBeat.js" "src/Main.ts"</preBuildCommand>
+  <preBuildCommand>"%APPDATA%\npm\tsc.cmd" --out "bin/assets/js/sharebeat.js" "src/typescript/Main.ts"</preBuildCommand>
   <!-- Executed after build -->
   <postBuildCommand alwaysRun="False" />
   <!-- Other project options -->
