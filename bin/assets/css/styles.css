@@ -581,12 +581,23 @@ footer {
 }
 #matrix {
   max-width: 1600px;
-  margin: 0 auto;
-  padding: 40px;
+  margin: 40px;
+  padding: 0;
   overflow: hidden;
   position: relative;
 }
+#matrix .progress {
+  width: 6.25%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background-color: rgba(210, 208, 67, 0.5);
+  height: 100%;
+  display: block;
+}
 article {
+  border: 1px #10110c thin;
   background-color: #dccf98;
   -webkit-transition: all 0.2s;
   transition: all 0.2s;

@@ -9,7 +9,12 @@ module audiobus
 		private lastBarTimeStamp:number;
 		
 		private playing:boolean = false;
-		private callOnBeat:Function;
+		private percentage:number = 0;
+		//private callOnBeat:Function;
+		private callOnBeat:(scope:any,time : number)=>any;
+		private callOnProgress:( scope:any,percent : number)=>any;
+
+		private callbackScope;
 
 		// INTERALS =======================================================
 		
@@ -33,9 +38,21 @@ module audiobus
 		}
 		
 		
-		constructor( callback:Function ) 
+		constructor( onBeatCallback:(scope:any, time : number)=>any, onProgressCallback:(scope:any, percent : number)=>any, scope:any ) 
 		{
-			this.callOnBeat = callback;
+			// Assign the method implementation here.
+			this.callOnBeat = onBeatCallback;
+			this.callOnProgress = onProgressCallback;
+			/*
+			this.callOnBeat = () => {
+				onBeatCallback.apply(this, arguments);
+			}
+			
+			this.callOnProgress = () => {
+				onProgressCallback.apply(this, arguments);
+			}
+			*/
+			this.callbackScope = scope;
 		}
 		
 		////////////////////////////////////////////////////////////////////////
@@ -45,13 +62,8 @@ module audiobus
 		{
 			this.playing = true;
 			this.setBpm( bpm );
-			
-			this.lastBarTimeStamp = this.determineStartTime();	
-			
-			alert( "Start at "+this.lastBarTimeStamp + " period "+this.period  );
-			
 			// begin!	
-			requestAnimationFrame( () => { this.onTimer; } );
+			requestAnimationFrame( () =>  this.onTimer() );
 		}
 		public stop():void
 		{
@@ -112,22 +124,27 @@ module audiobus
 			{
 				// update the last timestamp to about now or before...
 				this.incrementCuePoints( time );
+				this.percentage = 0;
 				
-				// callback!
-				this.callOnBeat.apply( time );
+				
+				// callback! make sure that the scope is consistent
+				//this.callOnBeat.apply( time );
+				this.callOnBeat( this.callbackScope, time );
 				
 				// call this method immediately again without delay!
 				// this should catch any quickly added cue points at low beats
 				this.onTimer();
 			}
+
+			if ( progress > this.percentage )
+			{
+				this.percentage = progress;
+				this.callOnProgress( this.callbackScope,  this.percentage );
+			}
 			
-			console.log( time )
-			console.log( this.lastBarTimeStamp )
-			console.log( this.period )
-			console.log( elapsed )
-			console.log( "barOccurred : " + barOccurred )
+			//console.log("Progress "+this.percentage );
 			
-			if ( this.playing ) requestAnimationFrame( () => { this.onTimer; } );
+			if ( this.playing ) requestAnimationFrame( () => this.onTimer() );
 		}
 		
 			

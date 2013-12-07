@@ -1,4 +1,5 @@
 ///<reference path="../definitions/waa.d.ts" />
+///<reference path="../definitions/greensock.d.ts" />
 
 // interface IPlugs
 module audiobus.instruments
@@ -29,8 +30,24 @@ module audiobus.instruments
 		
 		public stop():void
 		{
-			this.gain
+			
 		}
+		
+		public fadeIn( time:number=0.1 ):void
+		{
+			TweenLite.to(this.gain, time, {gain:1, onComplete:this.onFaded });
+		}
+		
+		public onFaded(  ):void
+		{
+			alert("fade complete "+this.gain.gain);
+		}
+		public fadeOut( time:number=0.1 ):void
+		{
+			console.log( "fading out in "+time );
+			TweenLite.to( this.gain, time, {gain:0});
+		}
+		
 	}
 	
 }

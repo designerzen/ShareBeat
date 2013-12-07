@@ -1,6 +1,7 @@
 var audiobus;
 (function (audiobus) {
     ///<reference path="../definitions/waa.d.ts" />
+    ///<reference path="../definitions/greensock.d.ts" />
     // interface IPlugs
     (function (instruments) {
         var Instrument = (function () {
@@ -22,7 +23,20 @@ var audiobus;
                 this.gain.connect(outputTo);
             }
             Instrument.prototype.stop = function () {
-                this.gain;
+            };
+
+            Instrument.prototype.fadeIn = function (time) {
+                if (typeof time === "undefined") { time = 0.1; }
+                TweenLite.to(this.gain, time, { gain: 1, onComplete: this.onFaded });
+            };
+
+            Instrument.prototype.onFaded = function () {
+                alert("fade complete " + this.gain.gain);
+            };
+            Instrument.prototype.fadeOut = function (time) {
+                if (typeof time === "undefined") { time = 0.1; }
+                console.log("fading out in " + time);
+                TweenLite.to(this.gain, time, { gain: 0 });
             };
             return Instrument;
         })();
@@ -507,10 +521,24 @@ var audiobus;
 var audiobus;
 (function (audiobus) {
     var Netronome = (function () {
-        function Netronome(callback) {
+        function Netronome(onBeatCallback, onProgressCallback, scope) {
             this.period = 6000;
             this.playing = false;
-            this.callOnBeat = callback;
+            this.percentage = 0;
+            // Assign the method implementation here.
+            this.callOnBeat = onBeatCallback;
+            this.callOnProgress = onProgressCallback;
+
+            /*
+            this.callOnBeat = () => {
+            onBeatCallback.apply(this, arguments);
+            }
+            
+            this.callOnProgress = () => {
+            onProgressCallback.apply(this, arguments);
+            }
+            */
+            this.callbackScope = scope;
         }
         // INTERALS =======================================================
         // a way of converting a quantity of beats per minute into periods of bar length
@@ -538,13 +566,9 @@ var audiobus;
             this.playing = true;
             this.setBpm(bpm);
 
-            this.lastBarTimeStamp = this.determineStartTime();
-
-            alert("Start at " + this.lastBarTimeStamp + " period " + this.period);
-
             // begin!
             requestAnimationFrame(function () {
-                _this.onTimer;
+                return _this.onTimer();
             });
         };
         Netronome.prototype.stop = function () {
@@ -596,24 +620,25 @@ var audiobus;
             if (barOccurred) {
                 // update the last timestamp to about now or before...
                 this.incrementCuePoints(time);
+                this.percentage = 0;
 
-                // callback!
-                this.callOnBeat.apply(time);
+                // callback! make sure that the scope is consistent
+                //this.callOnBeat.apply( time );
+                this.callOnBeat(this.callbackScope, time);
 
                 // call this method immediately again without delay!
                 // this should catch any quickly added cue points at low beats
                 this.onTimer();
             }
 
-            console.log(time);
-            console.log(this.lastBarTimeStamp);
-            console.log(this.period);
-            console.log(elapsed);
-            console.log("barOccurred : " + barOccurred);
+            if (progress > this.percentage) {
+                this.percentage = progress;
+                this.callOnProgress(this.callbackScope, this.percentage);
+            }
 
             if (this.playing)
                 requestAnimationFrame(function () {
-                    _this.onTimer;
+                    return _this.onTimer();
                 });
         };
         Netronome.EPOCH = new Date(2012, 12, 21, 6, 6, 6).getTime();
@@ -682,17 +707,22 @@ $(document).ready(function () {
     var timeout;
     var buttonHtml = 'article.button';
     var steps = 16;
-    var quantity = steps * 16;
+    var notes = 16;
+    var quantity = steps * notes;
     var mouseDown = false;
 
     var userNames = ["A", "B", "C", "D"];
     var colours = [""];
 
+    var index = 0;
     var octave = 6;
 
     var drums = new audiobus.DrumMachine();
+
     var sine = new audiobus.instruments.Sine(drums.dsp, drums.gain);
-    var netronome = new audiobus.Netronome(onEveryBeat);
+    var netronome = new audiobus.Netronome(onEveryBeat, onProgress, this);
+
+    var instruments = [];
 
     // fetch all foreign beats associated with
     function getOthersBeats(column) {
@@ -741,10 +771,6 @@ $(document).ready(function () {
         var index = parseInt($element.attr("alt"));
         var column = index % steps;
         var key = (index / steps) >> 0;
-        var colour = 0x990000;
-
-        // ensure that all other nodes in this column are
-        // disabled!
         var data = userName + column;
         var $existing = $matrix.data(data);
         var className = "selected user" + userName + " ";
@@ -757,9 +783,6 @@ $(document).ready(function () {
             console.log("There is no entry in this column currently at key " + key);
         }
 
-        var frequency = 440 * Math.pow(2, ((key + octave) / 12));
-        sine.start(frequency);
-
         //var users = getOthersBeats( column );
         //console.log( users );
         // append other users onto this
@@ -767,28 +790,78 @@ $(document).ready(function () {
 
         // This is where we do the colour magic...
         $element.addClass(className);
-        $element.data("active" + userName, true);
+        $element.data("active" + userName, key);
 
         //$element.css( "background-color", colour );
         // set in global data base
         $matrix.data(data, $element);
-
-        drums.trigger(1);
     }
 
     function deselectBeat($element, user) {
         if (typeof user === "undefined") { user = 0; }
         var userName = userNames[user];
-        $element.removeClass("selected user" + userName);
-        $element.data("active" + userNames[user], false);
+        var position = parseInt($element.attr("alt"));
+        var column = position % steps;
+        var data = userName + column;
 
-        drums.trigger(3);
+        $element.removeClass("selected user" + userName);
+
+        //$element.data( "active"+userNames[user], -1 );
+        $element.removeData("active" + userName);
+
+        // set in global data base
+        $matrix.removeData(data);
     }
 
     // Privates
     // Beat commencing at point due to netronome...
-    function onEveryBeat(t) {
-        console.log("Beat! Yo");
+    function onEveryBeat(scope, t) {
+        for (var u = 0, l = userNames.length; u < l; ++u) {
+            // fetch the user name
+            var userName = userNames[u];
+            var data = userName + index;
+
+            var $element = $matrix.data(data);
+            if ($element) {
+                //console.log( $element );
+                // so we have an element in our db!
+                var position = parseInt($element.attr("alt"));
+                var column = position % steps;
+                var key = notes - (position / steps) >> 0;
+
+                console.log(userName + " Beat " + index + " in key " + key + " occurred checking " + data);
+
+                // check to see if an existing note already exists
+                //$element = $( $buttons[ index ] );
+                // check to see if there are any nodes registered here
+                //console.log( "Key found, not playing" );
+                var frequency = 440 * Math.pow(2, ((key + octave) / 12));
+                sine.start(frequency);
+            } else {
+                if (u == 0) {
+                    console.log("Stopping note " + $element);
+                    sine.stop();
+                    //sine.fadeOut();
+                }
+            }
+        }
+
+        // move bar to correct position
+        $bar.css("left", (index * 100 / 16) + "%");
+
+        console.log("Beat " + index + " occurred bar : " + (index * 100 / 16));
+
+        // find relevant step
+        index = (index + 1) % steps;
+
+        return true;
+    }
+
+    // Beat commencing at point due to netronome...
+    function onProgress(scope, percent) {
+        // scope is netronome :(
+        // console.log("Progress : "+percent);
+        return true;
     }
 
     // Beat has been pressed
@@ -894,9 +967,14 @@ else
         boxes += '<article alt="' + g + '" class="button"></article>';
     }
 
+    // add in our progress bar
+    boxes += '<div class="progress"></div>';
+
     // finally inject boxes!
     $matrix.html(boxes);
+
     var $buttons = $("article.button", $matrix);
+    var $bar = $("div.progress", $matrix);
 
     // first check for mouse down
     $matrix.mousedown(onMouseDown);
@@ -919,5 +997,6 @@ else
         console.log("keypress " + event.which);
     });
 
-    netronome.start();
+    onActualResize(null);
+    netronome.start(120);
 });

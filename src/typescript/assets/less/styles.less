@@ -77,14 +77,29 @@ header, footer{
 
 #matrix{
 	max-width: 1600px;
-	margin: 0 auto;
-	padding: 40px;
+	margin: 40px;
+	padding: 0;
 	overflow: hidden;
 	position:relative;
 	
+	
+	.progress{
+		@size : @box-width + 0%;
+		width: @size;
+		position:absolute;
+		top:0;
+		left:0;
+		bottom:0;
+		background-color:fadeout(@green, 50%);
+		height:100%;
+		display:block;
+		//padding: 40px;
+	}
 }
 
 article{
+	
+	border:1px @brown thin;
 	
 	@size : @box-width + 0%;
 	background-color:@grey;
@@ -203,6 +218,8 @@ article.userA.userB.userC.userD{
 	@c : mix(@userA,@userB);
 	background-color:@c;
 }
+
+
 div, h2 { 
 	position: absolute;
 }
