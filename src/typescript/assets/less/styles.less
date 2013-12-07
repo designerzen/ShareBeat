@@ -13,6 +13,11 @@
 @translucent-dark:rgba( 56, 144, 163, 0.6 );
 @transparent:rgba( 0, 0, 0, 0 );
 
+@userA:@blue;
+@userB:lighten( @blue, 20% );
+@userC:lighten( @blue, 40% );
+@userD:lighten( @blue, 60% );
+
 
 @background:@grey;
 @accent:@orange;
@@ -39,10 +44,12 @@
 
 
 body{
-	//position:relative;
+	position:relative;
 	
+	width:100%;
 	min-height:100%;
 	height:100%;
+	
 	
 	color:@grey;
 	background-color:@brown;
@@ -52,25 +59,184 @@ body{
 
 }
 
-.selection( @brown,@green );
-
-a{
-	background-color:@grey;
-	text-decoration:none;
-	.transition (all 0.6s);
-	
-	&:hover{
-		background-color:@orange;
-		color:darken( @links , 20% );
-		text-decoration:none;
-	}
+header, footer{
+	.visuallyhidden();
 }
+
+.selection( @brown,@green );
 
 // square of squares
 @box-width : 100 / @steps;
 @box-height : 100 / @keys;
 
-.button{
+
+#content{
+	width:100%;
+	margin:auto;
+}
+
+#matrix{
+	max-width: 1600px;
+	margin: 0 auto;
+	padding: 40px;
+	overflow: hidden;
+	position:relative;
+	
+}
+
+article{
+	
+	@size : @box-width + 0%;
+	background-color:@grey;
+	text-decoration:none;
+	.transition (all 0.2s);
+	
+	float: left;
+	width: @size;
+	padding-bottom: @size;
+	height: auto;
+	
+	// z
+	//max-height:@size;
+	//margin: 20px 2% 0 0;
 	
 	.button();
+	
+	position: relative;
+	top: 0;
+	overflow: hidden;
+	display:block;
+	
+	.over,
+	&:hover{
+		background-color:@orange;
+		color:darken( @links , 20% );
+		text-decoration:none;
+	}
+	
+	img { 
+		max-width: 100%; 
+	}
+
 }
+
+article.selected{
+	background-color:@green;
+	&:hover{
+		background-color:@blue;
+		color:darken( @links , 20% );
+		text-decoration:none;
+	}
+}
+article.userA{
+	background-color:@userA;
+	&:hover{
+		background-color:@blue;
+		color:darken( @links , 20% );
+		text-decoration:none;
+	}
+}
+article.userB{
+	background-color:@userB;
+	&:hover{
+		background-color:@blue;
+		color:darken( @links , 20% );
+		text-decoration:none;
+	}
+}
+article.userC{
+	background-color:@userC;
+	&:hover{
+		background-color:@blue;
+		color:darken( @links , 20% );
+		text-decoration:none;
+	}
+}
+article.userD{
+	background-color:@userD;
+	&:hover{
+		background-color:@blue;
+		color:darken( @links , 20% );
+		text-decoration:none;
+	}
+}
+
+// user A
+article.userA.userB{
+	@c : mix(@userA,@userB);
+	background-color:@c;
+}
+article.userA.userC{
+	@c : mix(@userA,@userC);
+	background-color:@c;
+}
+article.userA.userD{
+	@c : mix(@userA,@userD);
+	background-color:@c;
+}
+article.userA.userB.userC{
+	@c : mix(@userA,@userB);
+	@d : mix(@c,@userC);
+	background-color:@d;
+}
+article.userA.userB.userD{
+	@c : mix(@userA,@userB);
+	@d : mix(@c,@userD);
+	background-color:@d;
+}
+article.userA.userC.userD{
+	@c : mix(@userA,@userC);
+	@d : mix(@c,@userD);
+	background-color:@d;
+}
+article.userA.userB.userC.userD{
+	@c : mix(@userA,@userB);
+	@d : mix(@userD,@userC);
+	@e : mix(@c,@d);
+	
+	background-color:@e;
+}
+
+//
+
+article.userA.userB.userC.userD{
+	@c : mix(@userA,@userB);
+	background-color:@c;
+}
+div, h2 { 
+	position: absolute;
+}
+
+
+	
+/* Font Size Control Media Queries */
+
+@media screen and (min-width:500px) {
+	h1, h2, h3 { font-size: 2em; }
+	p { font-size: 1em; line-height: 1.2; }
+}
+@media screen and (min-width:600px) {
+	h1, h2, h3 { font-size: 2.5em; }
+}
+@media screen and (min-width:700px) {
+	h1, h2, h3 { font-size: 3em; }
+	p { font-size: 1.25em; }
+}
+@media screen and (min-width:800px) {
+	h1, h2, h3 { font-size: 2.5em; }
+	p { font-size: 1em; }
+}
+@media screen and (min-width:1000px) {
+	h1, h2, h3 { font-size: 3.25em; }
+	p { font-size: 1.25em; }
+}
+@media screen and (min-width:1200px) {
+	p { font-size: 1em; }
+}
+@media screen and (min-width:1400px) {
+	p { font-size: 1.25em; }
+}
+@media screen and (min-width:1600px) {
+	h1, h2, h3 { font-size: 4em; }
+}
+

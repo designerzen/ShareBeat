@@ -21,6 +21,9 @@ var audiobus;
                 this.gain = audioContext.createGain();
                 this.gain.connect(outputTo);
             }
+            Instrument.prototype.stop = function () {
+                this.gain;
+            };
             return Instrument;
         })();
         instruments.Instrument = Instrument;
@@ -383,6 +386,49 @@ var audiobus;
 var audiobus;
 (function (audiobus) {
     ///<reference path="../definitions/waa.d.ts" />
+    ///<reference path="Instrument.ts" />
+    (function (instruments) {
+        var Sine = (function (_super) {
+            __extends(Sine, _super);
+            // create
+            function Sine(audioContext, outputTo) {
+                _super.call(this, audioContext, outputTo);
+
+                // Synthesize!
+                this.osc = audioContext.createOscillator();
+                this.osc.type = 0;
+                this.osc.connect(this.gain);
+            }
+            Sine.prototype.start = function (frequency) {
+                console.log("Sine commencing at f:" + frequency);
+                var t = this.context.currentTime;
+
+                this.osc.frequency.value = frequency;
+
+                //this.osc.frequency.setValueAtTime(1200, t);
+                //this.osc.frequency.linearRampToValueAtTime(800, t + 0.005);
+                this.gain.gain.value = 1;
+
+                //this.gain.gain.cancelScheduledValues( t );
+                //this.gain.gain.setValueAtTime(0.5, t);
+                //this.gain.gain.exponentialRampToValueAtTime(0.5, 	t + 0.010);
+                //this.gain.gain.linearRampToValueAtTime(0.0,  t + 0.160);
+                this.osc.start(0);
+            };
+
+            Sine.prototype.stop = function () {
+                console.log("Sine stopping");
+                this.gain.gain.value = 0;
+            };
+            return Sine;
+        })(instruments.Instrument);
+        instruments.Sine = Sine;
+    })(audiobus.instruments || (audiobus.instruments = {}));
+    var instruments = audiobus.instruments;
+})(audiobus || (audiobus = {}));
+var audiobus;
+(function (audiobus) {
+    ///<reference path="../definitions/waa.d.ts" />
     (function (inputs) {
         var Microphone = (function () {
             // this will need to be removed once getUserMedia is more accepted
@@ -458,10 +504,129 @@ var audiobus;
     })(audiobus.visualisation || (audiobus.visualisation = {}));
     var visualisation = audiobus.visualisation;
 })(audiobus || (audiobus = {}));
+var audiobus;
+(function (audiobus) {
+    var Netronome = (function () {
+        function Netronome(callback) {
+            this.period = 6000;
+            this.playing = false;
+            this.callOnBeat = callback;
+        }
+        // INTERALS =======================================================
+        // a way of converting a quantity of beats per minute into periods of bar length
+        Netronome.prototype.setBpm = function (beatsPerMinute) {
+            if (beatsPerMinute < 1)
+                return this.getBpm();
+            var seconds = 60 / beatsPerMinute;
+
+            this.period = seconds * 1000;
+
+            this.lastBarTimeStamp = this.determineStartTime();
+            return beatsPerMinute;
+        };
+
+        Netronome.prototype.getBpm = function () {
+            return (60 / (this.period * 0.001)) >> 0;
+        };
+
+        ////////////////////////////////////////////////////////////////////////
+        // Begin & End the Netronome timer
+        ////////////////////////////////////////////////////////////////////////
+        Netronome.prototype.start = function (bpm) {
+            if (typeof bpm === "undefined") { bpm = 90; }
+            var _this = this;
+            this.playing = true;
+            this.setBpm(bpm);
+
+            this.lastBarTimeStamp = this.determineStartTime();
+
+            alert("Start at " + this.lastBarTimeStamp + " period " + this.period);
+
+            // begin!
+            requestAnimationFrame(function () {
+                _this.onTimer;
+            });
+        };
+        Netronome.prototype.stop = function () {
+            this.playing = false;
+        };
+
+        ////////////////////////////////////////////////////////////////////////
+        // Work out the timestamp that the last metronome ticked at -
+        // This should synchronise across BPMS and periods. For that to occur
+        ////////////////////////////////////////////////////////////////////////
+        Netronome.prototype.determineStartTime = function () {
+            // so we have a timestamp that shows the time now
+            var now = Date.now();
+            var timeSinceEpoch = now - Netronome.EPOCH;
+            var elapsed = timeSinceEpoch % this.period;
+            var remaining = this.period - elapsed;
+            var lastTick = (now - elapsed);
+
+            //trace( 'CREATING EPOCH now:'+now+" then:"+EPOCH);
+            //	trace( ''+Std.int(timeSinceEpoch / period)+" Bars have occurred at "+get_bpm()+ " BPM");
+            //	trace( ''+Std.int(elapsed)+" ms elapsed in this bar "+Std.int(elapsed*100/period)+'% Elapsed');
+            //	trace( 'lastTick : ' + lastTick + " at " + get_bpm()+ " BPM");
+            //trace( 'Remaining Time in Bar '+Std.int(remaining)+" ms "+Std.int(elapsed*100/period)+'% Elapsed');
+            //trace( 'Left Over at '+remaining+" period : "+period+' remaining : ' + remaining + ' timestamp : '+( now - remaining) );
+            console.log("lastTick : " + lastTick);
+            return lastTick;
+        };
+
+        ////////////////////////////////////////////////////////////////////////
+        //
+        ////////////////////////////////////////////////////////////////////////
+        Netronome.prototype.incrementCuePoints = function (now) {
+            if (typeof now === "undefined") { now = -1; }
+            // update the last timestamp to about now or before...
+            this.lastBarTimeStamp += this.period;
+        };
+
+        ////////////////////////////////////////////////////////////////////////
+        // Check the time to see if a beat has occurred
+        ////////////////////////////////////////////////////////////////////////
+        Netronome.prototype.onTimer = function () {
+            var _this = this;
+            // discover how much time has elapsed since our last timestamp...
+            var time = Date.now();
+            var elapsed = time - this.lastBarTimeStamp;
+            var progress = elapsed / this.period;
+            var barOccurred = elapsed >= this.period;
+
+            if (barOccurred) {
+                // update the last timestamp to about now or before...
+                this.incrementCuePoints(time);
+
+                // callback!
+                this.callOnBeat.apply(time);
+
+                // call this method immediately again without delay!
+                // this should catch any quickly added cue points at low beats
+                this.onTimer();
+            }
+
+            console.log(time);
+            console.log(this.lastBarTimeStamp);
+            console.log(this.period);
+            console.log(elapsed);
+            console.log("barOccurred : " + barOccurred);
+
+            if (this.playing)
+                requestAnimationFrame(function () {
+                    _this.onTimer;
+                });
+        };
+        Netronome.EPOCH = new Date(2012, 12, 21, 6, 6, 6).getTime();
+        return Netronome;
+    })();
+    audiobus.Netronome = Netronome;
+})(audiobus || (audiobus = {}));
 ///<reference path="audiobus/definitions/jquery.d.ts" />
 ///<reference path="audiobus/DrumMachine.ts" />
+///<reference path="audiobus/instruments/Sine.ts" />
 ///<reference path="audiobus/inputs/Microphone.ts" />
 ///<reference path="audiobus/visualisation/SpectrumAnalyzer.ts" />
+///<reference path="audiobus/Netronome.ts" />
 var Main = (function () {
     function Main() {
         var _this = this;
@@ -474,8 +639,7 @@ var Main = (function () {
 
         // var mic = new audiobus.inputs.Microphone( this.drums.dsp, this.drums.gain );
         // mic.getMic();
-        var viz = new audiobus.visualisation.SpectrumAnalyzer(this.drums.dsp, this.drums.gain);
-
+        //var viz = new audiobus.visualisation.SpectrumAnalyzer( this.drums.dsp, this.drums.gain );
         // now hook into our analyser for updates
         // Attach key event
         document.onkeydown = function (event) {
@@ -512,24 +676,248 @@ var Main = (function () {
     return Main;
 })();
 
-/*
-
-class Person {
-
-constructor(name:string)
-{
-this.name=name;
-}
-name: string;
-}
-
-function greeter (person:Person){
-return "hallo "+person.name;
-}
-
-var person=new Person("bert");
-*/
+// jQuery Commence!
 $(document).ready(function () {
-    // firstly inject boxes!
-    //$("#status")[0].innerHTML=message;
+    var $matrix = $('#matrix'), $content = $('#content');
+    var timeout;
+    var buttonHtml = 'article.button';
+    var steps = 16;
+    var quantity = steps * 16;
+    var mouseDown = false;
+
+    var userNames = ["A", "B", "C", "D"];
+    var colours = [""];
+
+    var octave = 6;
+
+    var drums = new audiobus.DrumMachine();
+    var sine = new audiobus.instruments.Sine(drums.dsp, drums.gain);
+    var netronome = new audiobus.Netronome(onEveryBeat);
+
+    // fetch all foreign beats associated with
+    function getOthersBeats(column) {
+        var output = {};
+
+        for (var n, l = userNames.length; n < l; ++n) {
+            var userName = userNames[n];
+            var data = userName + column;
+            var $existing = $matrix.data(data);
+
+            if ($existing) {
+                output[userName] = true;
+                console.log("Found friend " + userName + " in this column");
+            } else {
+                //
+                console.log("There are no other nodes for this friend ");
+            }
+        }
+        return output;
+    }
+
+    // fetch all foreign beats associated with
+    function getOthersBeatString(column) {
+        var output = "";
+
+        for (var n, l = userNames.length; n < l; ++n) {
+            var userName = userNames[n];
+            var data = userName + column;
+            var $existing = $matrix.data(data);
+
+            if ($existing) {
+                output += userName + " ";
+
+                console.log("Found friend " + userName + " in this column");
+            } else {
+                //
+                console.log("There are no other nodes for this friend ");
+            }
+        }
+        return output;
+    }
+
+    function selectBeat($element, user) {
+        if (typeof user === "undefined") { user = 0; }
+        var userName = userNames[user];
+        var index = parseInt($element.attr("alt"));
+        var column = index % steps;
+        var key = (index / steps) >> 0;
+        var colour = 0x990000;
+
+        // ensure that all other nodes in this column are
+        // disabled!
+        var data = userName + column;
+        var $existing = $matrix.data(data);
+        var className = "selected user" + userName + " ";
+
+        if ($existing) {
+            deselectBeat($existing, user);
+            console.log("Found previous in this column at key " + key);
+        } else {
+            //
+            console.log("There is no entry in this column currently at key " + key);
+        }
+
+        var frequency = 440 * Math.pow(2, ((key + octave) / 12));
+        sine.start(frequency);
+
+        //var users = getOthersBeats( column );
+        //console.log( users );
+        // append other users onto this
+        className += getOthersBeatString(column);
+
+        // This is where we do the colour magic...
+        $element.addClass(className);
+        $element.data("active" + userName, true);
+
+        //$element.css( "background-color", colour );
+        // set in global data base
+        $matrix.data(data, $element);
+
+        drums.trigger(1);
+    }
+
+    function deselectBeat($element, user) {
+        if (typeof user === "undefined") { user = 0; }
+        var userName = userNames[user];
+        $element.removeClass("selected user" + userName);
+        $element.data("active" + userNames[user], false);
+
+        drums.trigger(3);
+    }
+
+    // Privates
+    // Beat commencing at point due to netronome...
+    function onEveryBeat(t) {
+        console.log("Beat! Yo");
+    }
+
+    // Beat has been pressed
+    function onBeatSelected(element) {
+        var $this = $(element);
+
+        // check to see if it is already pressed...
+        var isActive = $this.data("activeA") || false;
+
+        console.log("Beat selected active:" + isActive);
+
+        if (isActive)
+            onBeatDeselect($this);
+else
+            onBeatRequest($this);
+    }
+
+    // Beat has been pressed
+    function onBeatRequest($element) {
+        selectBeat($element, 0);
+    }
+
+    // Beat has been pressed
+    function onBeatDeselect($element) {
+        deselectBeat($element, 0);
+    }
+
+    function onBeatPressed(event) {
+        var $this = $(this);
+        var isActive = $this.data("activeA") || false;
+
+        if (isActive)
+            deselectBeat($this, 0);
+else
+            selectBeat($this, 0);
+        //console.log("Beat pressed");
+    }
+
+    function onBeatRolledOver(event) {
+        if (mouseDown)
+            onBeatSelected(this);
+else
+            $(this).addClass("over");
+        //console.log("Beat selected");
+    }
+
+    function onBeatRolledOut() {
+        console.log("Beat out");
+        $(this).removeClass("over");
+        //$( this ).unbind( "mouseout" );
+    }
+
+    // Foreign events from web service!
+    function onForeignBeat(user, step, key) {
+        // figure out where the beat is on the system...
+        var index = step * key;
+        var $element = $($buttons[index]);
+
+        selectBeat($element, user);
+    }
+
+    // Mouse events
+    function onMouseDown(event) {
+        mouseDown = true;
+        $matrix.mouseup(onMouseUp);
+    }
+    function onMouseUp(event) {
+        //sine.stop();
+        mouseDown = false;
+    }
+
+    // Screen resize
+    function onMatrixResize(event) {
+        if (timeout)
+            clearTimeout(timeout);
+        timeout = setTimeout(onActualResize, 500);
+    }
+
+    // Screen resize
+    function onActualResize(event) {
+        // throw an alert when height of matrix exceeds screeen height!
+        var screenWidth = $(window).width();
+        var screenHeight = $(window).height();
+
+        if (screenWidth < screenHeight) {
+            // no scrollbar
+            console.log("safe height for matrix " + screenHeight + " with " + $matrix.height());
+            $content.width("100%");
+            $content.css("margin-left", 0);
+        } else {
+            // scroll bar so readjust size
+            console.log("matrix exceeding height " + screenHeight + " with " + $matrix.height());
+            $content.width(screenHeight + "px");
+            var leftOver = $(window).width() - screenHeight;
+            $content.css("margin-left", leftOver * 0.5);
+        }
+    }
+
+    // BEGIN
+    // loop through here and create our 16 x 16 grid
+    var boxes = "";
+    for (var g = 0; g < quantity; ++g) {
+        boxes += '<article alt="' + g + '" class="button"></article>';
+    }
+
+    // finally inject boxes!
+    $matrix.html(boxes);
+    var $buttons = $("article.button", $matrix);
+
+    // first check for mouse down
+    $matrix.mousedown(onMouseDown);
+
+    // now convert each of these boxes into a specific ID
+    $buttons.mouseover(onBeatRolledOver);
+    $buttons.mouseout(onBeatRolledOut);
+    $buttons.click(onBeatPressed);
+
+    $(window).resize(onMatrixResize);
+
+    $(window).keydown(function (event) {
+        if (event.which == 13) {
+            event.preventDefault();
+        }
+        var user = 1;
+        var step = (Math.random() * 16) >> 0;
+        var key = (Math.random() * 16) >> 0;
+        onForeignBeat(user, step, key);
+        console.log("keypress " + event.which);
+    });
+
+    netronome.start();
 });

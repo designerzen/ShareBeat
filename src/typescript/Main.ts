@@ -1,7 +1,10 @@
 ///<reference path="audiobus/definitions/jquery.d.ts" />
 ///<reference path="audiobus/DrumMachine.ts" />
+///<reference path="audiobus/instruments/Sine.ts" />
 ///<reference path="audiobus/inputs/Microphone.ts" />
 ///<reference path="audiobus/visualisation/SpectrumAnalyzer.ts" />
+
+///<reference path="audiobus/Netronome.ts" />
 class Main 
 {
 	
@@ -24,7 +27,7 @@ class Main
 		// var mic = new audiobus.inputs.Microphone( this.drums.dsp, this.drums.gain );
 		// mic.getMic();
 		
-		var viz = new audiobus.visualisation.SpectrumAnalyzer( this.drums.dsp, this.drums.gain );
+		//var viz = new audiobus.visualisation.SpectrumAnalyzer( this.drums.dsp, this.drums.gain );
 		
 		// now hook into our analyser for updates
 		
@@ -62,31 +65,288 @@ class Main
 			this.drums.trigger(4);
 		}
 	}
-	
+
 }
 
-/*
 
-class Person {
- 
-constructor(name:string)
-{
-this.name=name;
-}
-name: string;
-}
- 
-function greeter (person:Person){
-return "hallo "+person.name;
-}
- 
-var person=new Person("bert");
- */
- 
+// jQuery Commence!
 $(document).ready(function(){
 	
-	// firstly inject boxes!
+	var $matrix = $('#matrix'),
+		$content = $('#content');
+	var timeout;	
+	var buttonHtml = 'article.button';
+	var steps = 16 ;
+	var quantity = steps * 16;
+	var mouseDown = false;
 	
-	//$("#status")[0].innerHTML=message;
+	var userNames = [ "A", "B", "C", "D" ];
+	var colours = [ "" ];
+	
+	var octave = 6;
+	
+	var drums  = new audiobus.DrumMachine();
+	var sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
+	var netronome = new audiobus.Netronome( onEveryBeat );
+	
+	// fetch all foreign beats associated with 
+	function getOthersBeats( column )
+	{
+		var output = {};
+		// go through all of the players and 
+		for ( var n, l = userNames.length; n < l ; ++n )
+		{
+			var userName = userNames[n];
+			var data = userName + column;
+			var $existing = $matrix.data( data );
+			
+			if ( $existing ) 
+			{
+				output[ userName ] = true;
+				console.log("Found friend "+userName+" in this column");
+			}else{
+				// 
+				console.log("There are no other nodes for this friend ");
+			}
+		}
+		return output;
+	}
+		
+	// fetch all foreign beats associated with 
+	function getOthersBeatString( column )
+	{
+		var output = "";
+		// go through all of the players and 
+		for ( var n, l = userNames.length; n < l ; ++n )
+		{
+			var userName = userNames[n];
+			var data = userName + column;
+			var $existing = $matrix.data( data );
+			
+			if ( $existing ) 
+			{
+				output += userName + " ";
+				
+				console.log("Found friend "+userName+" in this column");
+			}else{
+				// 
+				console.log("There are no other nodes for this friend ");
+			}
+		}
+		return output;
+	}
+		
+	function selectBeat( $element, user:number=0 )
+	{
+		var userName = userNames[user];
+		var index = parseInt( $element.attr( "alt" ) );
+		var column = index % steps;
+		var key = (index / steps) >> 0;
+		var colour = 0x990000;
+		// ensure that all other nodes in this column are 
+		// disabled!
+		var data = userName + column;
+		var $existing = $matrix.data( data );
+		var className = "selected user"+userName + " ";
+		
+		if ( $existing ) 
+		{
+			deselectBeat( $existing , user );
+			console.log("Found previous in this column at key "+key );
+		}else{
+			// 
+			console.log("There is no entry in this column currently at key "+key );
+		}
+		
+		var frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );
+		sine.start( frequency );
+		
+		//var users = getOthersBeats( column );
+		//console.log( users );
+		
+		// append other users onto this
+		className += getOthersBeatString( column );
+		
+		// This is where we do the colour magic...
+		$element.addClass( className );
+		$element.data( "active"+userName, true );
+		//$element.css( "background-color", colour );
+		
+		// set in global data base
+		$matrix.data( data, $element );
+		
+		drums.trigger(1);
+	}
+	
+	function deselectBeat( $element, user:number=0 )
+	{
+		var userName = userNames[user];
+		$element.removeClass("selected user"+userName);
+		$element.data( "active"+userNames[user], false );
+		
+		drums.trigger(3);
+	}
+	
+	
+	// Privates
+	
+	// Beat commencing at point due to netronome...
+	function onEveryBeat( t )
+	{
+		console.log("Beat! Yo");
+		
+	}
+	
+	// Beat has been pressed
+	function onBeatSelected(element)
+	{
+		var $this = $(element);
+		// check to see if it is already pressed...
+		var isActive = $this.data( "activeA" )|| false;
+		
+		console.log("Beat selected active:"+isActive);
+		
+		
+		if ( isActive ) onBeatDeselect( $this );
+		else onBeatRequest( $this );
+	}
+	
+	// Beat has been pressed
+	function onBeatRequest($element)
+	{
+		selectBeat( $element, 0 );
+	}
+	
+	// Beat has been pressed
+	function onBeatDeselect($element)
+	{
+		deselectBeat( $element, 0 );
+	}
+	
+	function onBeatPressed(event)
+	{
+		var $this = $( this );
+		var isActive = $this.data( "activeA" ) || false;
+		
+		if (isActive) deselectBeat( $this, 0 );
+		else selectBeat( $this, 0 );
+		//console.log("Beat pressed");
+		
+	}
+	
+	function onBeatRolledOver(event)
+	{
+		//console.log("Beat over");
+		
+		if (mouseDown) onBeatSelected( this );
+		else $(this).addClass("over");
+		//console.log("Beat selected");
+		
+		
+	}
+	
+	function onBeatRolledOut()
+	{
+		console.log("Beat out");
+		$(this).removeClass("over");
+		//$( this ).unbind( "mouseout" );
+		
+	}
+	
+	// Foreign events from web service!
+	function onForeignBeat( user, step, key )
+	{
+		// figure out where the beat is on the system...
+		var index = step * key;
+		var $element = $( $buttons[ index ] );
+		
+		selectBeat( $element, user );
+	}
+	
+	// Mouse events
+	
+	function onMouseDown(event)
+	{
+		mouseDown = true;
+		$matrix.mouseup( onMouseUp );
+	}
+	function onMouseUp(event)
+	{
+		//sine.stop();
+		mouseDown = false;
+	}
+	
+	// Screen resize
+	function onMatrixResize(event)
+	{
+		if (timeout) clearTimeout(timeout);
+		timeout = setTimeout( onActualResize, 500 ); 
+	}
+	
+	// Screen resize
+	function onActualResize(event)
+	{
+		// throw an alert when height of matrix exceeds screeen height!
+		var screenWidth = $(window).width();
+		var screenHeight = $(window).height();
+		
+		if ( screenWidth < screenHeight )
+		{
+			// no scrollbar
+			console.log( "safe height for matrix "+screenHeight+" with "+$matrix.height() );
+			$content.width( "100%" );
+			$content.css( "margin-left", 0 );
+		}else{
+			// scroll bar so readjust size
+			console.log( "matrix exceeding height "+screenHeight+" with "+$matrix.height() );
+			$content.width( screenHeight + "px" );
+			var leftOver = $(window).width() - screenHeight;
+			$content.css( "margin-left", leftOver * 0.5 );
+		}
+		
+		
+	}
+	
+	
+	
+	// BEGIN
+	
+	// loop through here and create our 16 x 16 grid
+	var boxes = "";
+	for ( var g=0; g < quantity; ++g )
+	{
+		boxes += '<article alt="'+g+'" class="button"></article>';
+	}
+	
+	// finally inject boxes!
+	$matrix.html( boxes );
+	var $buttons = $( "article.button" , $matrix );
+	
+	
+	// first check for mouse down
+	$matrix.mousedown( onMouseDown );
+	
+	// now convert each of these boxes into a specific ID
+	$buttons.mouseover( onBeatRolledOver );
+	$buttons.mouseout( onBeatRolledOut );
+	$buttons.click( onBeatPressed );
+	
+	$( window ).resize( onMatrixResize );
+	
+	$( window ).keydown(
+		function( event ) {
+			
+			if ( event.which == 13 ) {
+				event.preventDefault();
+			}
+			var user = 1;
+			var step = ( Math.random() * 16 ) >> 0;
+			var key = ( Math.random() * 16 ) >> 0;
+			onForeignBeat( user, step, key );
+			console.log("keypress "+event.which );
+		}
+	);
+	
+	netronome.start();
 	
 });

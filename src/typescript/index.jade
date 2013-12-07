@@ -18,7 +18,7 @@ html(lang="en", class="no-js")
 		meta(name='description', content='')
 		meta(name='HandheldFriendly', content='true')
 		meta(name='MobileOptimized', content='320')
-		meta(name='viewport', content='width=device-width')
+		meta(name='viewport', content='width=device-width, maximum-scale=1')
 		meta(name='author', content='gomozen')
 		
 		meta(property='og:type', content='website')
@@ -41,40 +41,35 @@ html(lang="en", class="no-js")
 		link(rel='author', type='text/plain', href='/humans.txt')
 		link(rel='author', href='')
 		link(rel='image_src', href='')
-		link(rel='stylesheet', href='assets/css/style.css')
+		link(rel='stylesheet', href='assets/css/styles.css')
 		<!--[if lt IE 9]>
 		script(src='http://html5shiv.googlecode.com/svn/trunk/html5.js')
 		<![endif]-->
-	body
-	//if lt IE 7
-		p.browsehappy
-			| You are using an <strong>outdated</strong> browser.
-			| Please <a href="http://browsehappy.com/">upgrade your browser</a>
-			| to improve your experience.
-
 		
-	
+	body
+
+		//if lt IE 7
+			p.browsehappy
+				| You are using an <strong>outdated</strong> browser.
+				| Please <a href="http://browsehappy.com/">upgrade your browser</a>
+				| to improve your experience.
+
 		header
 			h1 ShareBeat
 			h2 Synchronized Synthesizer
 		
-		#
+		#content	
+			#matrix
+				header
+					h3 You need a recent decent browser to use this app
 			
+
+
 		footer
+		
+		
 		script(src='//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js')
 		script.
 			window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')
-			//-script(src='js/plugins.js')
-			script(src='assets/js/sharebeat.js')
-			
-			//- change UA-XXXXX-X to your id and outdent the following:
-
-			//- Google Analytics: change UA-XXXXX-X to be your site's ID.
-			//-
-				script.
-					(function(b,o,i,l,e,r){b.GoogleAnalyticsObject=l;b[l]||(b[l]=
-					function(){(b[l].q=b[l].q||[]).push(arguments)});b[l].l=+new Date;
-					e=o.createElement(i);r=o.getElementsByTagName(i)[0];
-					e.src='//www.google-analytics.com/analytics.js';
-					r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
-					ga('create','UA-XXXXX-X');ga('send','pageview');
+		script(src='https://cdn.firebase.com/v0/firebase.js')
+		script(src='assets/js/sharebeat.js')	
