@@ -9,7 +9,7 @@ module audiobus
 		private lastBarTimeStamp:number;
 		
 		private playing:boolean = false;
-		private percentage:number = 0;
+		public percentage:number = 0;
 		//private callOnBeat:Function;
 		private callOnBeat:(scope:any,time : number)=>any;
 		private callOnProgress:( scope:any,percent : number)=>any;
@@ -24,9 +24,15 @@ module audiobus
 			if ( beatsPerMinute < 1 ) return this.getBpm();
 			var seconds:number = 60 / beatsPerMinute ;
 			
+			
 			this.period = seconds * 1000;
 			
 			this.lastBarTimeStamp = this.determineStartTime();
+			
+			var elapsed:number =  Date.now() - this.lastBarTimeStamp;	// fetch last bar timestamp and minus from NOW
+			this.percentage = elapsed / this.period;
+			
+			
 			return beatsPerMinute;
 		}
 		

@@ -6,6 +6,9 @@
 
 ///<reference path="audiobus/instruments/Instrument.ts" />
 ///<reference path="audiobus/instruments/Sine.ts" />
+///<reference path="audiobus/instruments/Saw.ts" />
+///<reference path="audiobus/instruments/Snare.ts" />
+///<reference path="audiobus/instruments/Conga.ts" />
 ///<reference path="audiobus/instruments/BassDrum.ts" />
 ///<reference path="audiobus/instruments/Conga.ts" />
 ///<reference path="audiobus/instruments/HiHat.ts" />
@@ -102,9 +105,12 @@ $(document).ready(function(){
 	var drums  = new audiobus.DrumMachine();
 	
 	var sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
+	var saw = new audiobus.instruments.Saw( drums.dsp, drums.gain );
+	var snare = new audiobus.instruments.Snare( drums.dsp, drums.gain );
 	var hihat = new audiobus.instruments.HiHat( drums.dsp, drums.gain );
 	var kick = new audiobus.instruments.BassDrum( drums.dsp, drums.gain );
 	var cowbell = new audiobus.instruments.CowBell( drums.dsp, drums.gain );
+	var conga = new audiobus.instruments.Conga( drums.dsp, drums.gain );
 	
 	var netronome = new audiobus.Netronome( onEveryBeat, onProgress, this );
 	
@@ -206,7 +212,80 @@ $(document).ready(function(){
 		$matrix.removeData( data  );
 	}
 	
-	
+	function playDrums( key:number )
+	{
+		/*
+		 sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
+		var hihat = new audiobus.instruments.HiHat( drums.dsp, drums.gain );
+		var kick = new audiobus.instruments.BassDrum( drums.dsp, drums.gain );
+		var cowbell = new audiobus.instruments.CowBell( drums.dsp, drums.gain );
+		var conga =
+	*/
+		switch( key )
+		{
+			case 0:
+				kick.start(2050, 0.005, 0.01, 0.7);
+				break;			
+			case 1:
+				kick.start(4050, 0.007, 0.01, 0.6);
+				
+				break;			
+			case 2:
+				kick.start(8050, 0.008, 0.03, 0.5);
+				
+				break;			
+			case 3:
+				kick.start(12050, 0.005, 0.01, 0.4);
+				
+				break;
+				
+			case 4:
+				snare.start( 2050, 0.005, 0.01, 0.1);
+				break;			
+			case 5:
+				snare.start( 2050, 0.006, 0.02, 0.1);
+				break;			
+			case 6:
+				snare.start( 2050, 0.007, 0.03, 0.1);
+				break;			
+				
+			case 7:
+				snare.start( 2050, 0.008, 0.04, 0.1);
+				break;			
+			case 8:
+				conga.start( 1200, 0.160);
+				break;			
+			case 9:
+				conga.start( 2200, 0.260);
+				
+				break;			
+			case 10:
+				conga.start( 3200, 0.360);
+				
+				break;			
+			case 11:
+				conga.start( 4200, 0.460);
+				
+				break;			
+			case 12:
+				cowbell.start( 0.025, 0.05, 0.4);
+				break;			
+			case 13:
+				cowbell.start( 0.020, 0.04, 0.3);
+				break;			
+			case 14:
+				cowbell.start( 0.015, 0.03, 0.2);
+				break;			
+			case 15:
+				cowbell.start( 0.010, 0.02, 0.3);
+				break;			
+			case 16:
+				cowbell.start( 0.005, 0.01, 0.2);
+				break;
+			
+				
+		}
+	}
 	// Privates
 	
 	// Beat commencing at point due to netronome...
@@ -215,7 +294,33 @@ $(document).ready(function(){
 		//var instrument:audiobus.instruments.Instrument = instruments[ user ];
 		var instrument = <audiobus.instruments.Instrument>instruments[ user ];
 		var frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );	
-		instrument.start( frequency );
+		
+		
+		switch( user )
+		{
+			// Simple sine wave
+			case 0:
+				sine.start( frequency );
+				break;
+				
+			// DrumMachine kit
+			case 1:
+				playDrums( key );
+				
+				break;
+				
+			case 2:
+				saw.start( frequency );
+				break;
+			case 3:
+				cowbell.start();
+				break;
+			
+			
+			
+		}
+		console.log( frequency + "Hz" );
+		
 	}
 	
 	// 
@@ -339,8 +444,8 @@ $(document).ready(function(){
 		//key = notes - key;
 		// this is WRONG!
 		//var index:number = (step*notes) / key;
-		var index:number = step+(notes*key);
-		var $element:JQuery = $( $buttons[ index ] );
+		var i:number = step+(notes*key);
+		var $element:JQuery = $( $buttons[ i ] );
 		
 		selectBeat( $element, user, false );
 	}
@@ -449,5 +554,8 @@ $(document).ready(function(){
 	onActualResize( null );
 	db.connect();
 	netronome.start( bpm );
+	
+	index = Math.abs(netronome.percentage * steps);
+	
 	$matrix.show();
 });

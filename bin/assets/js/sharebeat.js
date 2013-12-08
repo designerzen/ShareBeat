@@ -129,16 +129,16 @@ var audiobus;
             // trigger!
             Snare.prototype.start = function (l, offsetA, offsetB, offsetC) {
                 if (typeof l === "undefined") { l = 2050; }
-                if (typeof offsetA === "undefined") { offsetA = 0.005; }
-                if (typeof offsetB === "undefined") { offsetB = 0.01; }
-                if (typeof offsetC === "undefined") { offsetC = 0.7; }
+                if (typeof offsetA === "undefined") { offsetA = 0.025; }
+                if (typeof offsetB === "undefined") { offsetB = 0.050; }
+                if (typeof offsetC === "undefined") { offsetC = 0.3; }
                 var t = this.context.currentTime;
 
                 this.gain.gain.cancelScheduledValues(t);
                 this.gain.gain.setValueAtTime(1, t);
-                this.gain.gain.linearRampToValueAtTime(1, t + 0.025);
-                this.gain.gain.exponentialRampToValueAtTime(0.2, t + 0.050);
-                this.gain.gain.linearRampToValueAtTime(0.0, t + 0.300);
+                this.gain.gain.linearRampToValueAtTime(1, t + offsetA);
+                this.gain.gain.exponentialRampToValueAtTime(0.2, t + offsetB);
+                this.gain.gain.linearRampToValueAtTime(0.0, t + offsetC);
 
                 this.noise.start(0);
             };
@@ -251,16 +251,18 @@ var audiobus;
                 this.osc2.type = 0;
                 this.osc2.connect(this.gain);
             }
-            Conga.prototype.start = function () {
+            Conga.prototype.start = function (f, offsetA) {
+                if (typeof f === "undefined") { f = 1200; }
+                if (typeof offsetA === "undefined") { offsetA = 0.160; }
                 var t = this.context.currentTime;
 
-                this.osc2.frequency.setValueAtTime(1200, t);
+                this.osc2.frequency.setValueAtTime(f, t);
                 this.osc2.frequency.linearRampToValueAtTime(800, t + 0.005);
 
                 this.gain.gain.cancelScheduledValues(t);
                 this.gain.gain.setValueAtTime(0.5, t);
                 this.gain.gain.exponentialRampToValueAtTime(0.5, t + 0.010);
-                this.gain.gain.linearRampToValueAtTime(0.0, t + 0.160);
+                this.gain.gain.linearRampToValueAtTime(0.0, t + offsetA);
 
                 this.osc2.start(0);
             };
@@ -453,6 +455,48 @@ var audiobus;
 var audiobus;
 (function (audiobus) {
     ///<reference path="../definitions/waa.d.ts" />
+    ///<reference path="Instrument.ts" />
+    (function (instruments) {
+        var Saw = (function (_super) {
+            __extends(Saw, _super);
+            // create
+            function Saw(audioContext, outputTo) {
+                _super.call(this, audioContext, outputTo);
+
+                // Synthesize!
+                this.osc = audioContext.createOscillator();
+                this.osc.type = 1;
+                this.osc.connect(this.gain);
+            }
+            Saw.prototype.start = function (frequency) {
+                console.log("Sine commencing at f:" + frequency);
+                var t = this.context.currentTime;
+
+                this.osc.frequency.value = frequency;
+
+                //this.osc.frequency.setValueAtTime(1200, t);
+                //this.osc.frequency.linearRampToValueAtTime(800, t + 0.005);
+                this.gain.gain.value = .5;
+
+                //this.gain.gain.cancelScheduledValues( t );
+                //this.gain.gain.setValueAtTime(0.5, t);
+                //this.gain.gain.exponentialRampToValueAtTime(0.5, 	t + 0.010);
+                //this.gain.gain.linearRampToValueAtTime(0.0,  t + 0.160);
+                this.osc.start(0);
+            };
+
+            Saw.prototype.stop = function () {
+                this.gain.gain.value = 0;
+            };
+            return Saw;
+        })(instruments.Instrument);
+        instruments.Saw = Saw;
+    })(audiobus.instruments || (audiobus.instruments = {}));
+    var instruments = audiobus.instruments;
+})(audiobus || (audiobus = {}));
+var audiobus;
+(function (audiobus) {
+    ///<reference path="../definitions/waa.d.ts" />
     (function (inputs) {
         var Microphone = (function () {
             // this will need to be removed once getUserMedia is more accepted
@@ -560,6 +604,10 @@ var audiobus;
             this.period = seconds * 1000;
 
             this.lastBarTimeStamp = this.determineStartTime();
+
+            var elapsed = Date.now() - this.lastBarTimeStamp;
+            this.percentage = elapsed / this.period;
+
             return beatsPerMinute;
         };
 
@@ -775,6 +823,9 @@ var FireBaseAPI = (function () {
 //<reference path="audiobus/ISoundControl.ts" />
 ///<reference path="audiobus/instruments/Instrument.ts" />
 ///<reference path="audiobus/instruments/Sine.ts" />
+///<reference path="audiobus/instruments/Saw.ts" />
+///<reference path="audiobus/instruments/Snare.ts" />
+///<reference path="audiobus/instruments/Conga.ts" />
 ///<reference path="audiobus/instruments/BassDrum.ts" />
 ///<reference path="audiobus/instruments/Conga.ts" />
 ///<reference path="audiobus/instruments/HiHat.ts" />
@@ -852,9 +903,12 @@ $(document).ready(function () {
     var drums = new audiobus.DrumMachine();
 
     var sine = new audiobus.instruments.Sine(drums.dsp, drums.gain);
+    var saw = new audiobus.instruments.Saw(drums.dsp, drums.gain);
+    var snare = new audiobus.instruments.Snare(drums.dsp, drums.gain);
     var hihat = new audiobus.instruments.HiHat(drums.dsp, drums.gain);
     var kick = new audiobus.instruments.BassDrum(drums.dsp, drums.gain);
     var cowbell = new audiobus.instruments.CowBell(drums.dsp, drums.gain);
+    var conga = new audiobus.instruments.Conga(drums.dsp, drums.gain);
 
     var netronome = new audiobus.Netronome(onEveryBeat, onProgress, this);
 
@@ -951,13 +1005,95 @@ $(document).ready(function () {
         $matrix.removeData(data);
     }
 
+    function playDrums(key) {
+        switch (key) {
+            case 0:
+                kick.start(2050, 0.005, 0.01, 0.7);
+                break;
+            case 1:
+                kick.start(4050, 0.007, 0.01, 0.6);
+
+                break;
+            case 2:
+                kick.start(8050, 0.008, 0.03, 0.5);
+
+                break;
+            case 3:
+                kick.start(12050, 0.005, 0.01, 0.4);
+
+                break;
+
+            case 4:
+                snare.start(2050, 0.005, 0.01, 0.1);
+                break;
+            case 5:
+                snare.start(2050, 0.006, 0.02, 0.1);
+                break;
+            case 6:
+                snare.start(2050, 0.007, 0.03, 0.1);
+                break;
+
+            case 7:
+                snare.start(2050, 0.008, 0.04, 0.1);
+                break;
+            case 8:
+                conga.start(1200, 0.160);
+                break;
+            case 9:
+                conga.start(2200, 0.260);
+
+                break;
+            case 10:
+                conga.start(3200, 0.360);
+
+                break;
+            case 11:
+                conga.start(4200, 0.460);
+
+                break;
+            case 12:
+                cowbell.start(0.025, 0.05, 0.4);
+                break;
+            case 13:
+                cowbell.start(0.020, 0.04, 0.3);
+                break;
+            case 14:
+                cowbell.start(0.015, 0.03, 0.2);
+                break;
+            case 15:
+                cowbell.start(0.010, 0.02, 0.3);
+                break;
+            case 16:
+                cowbell.start(0.005, 0.01, 0.2);
+                break;
+        }
+    }
+
     // Privates
     // Beat commencing at point due to netronome...
     function playUserInstrument(user, key) {
         //var instrument:audiobus.instruments.Instrument = instruments[ user ];
         var instrument = instruments[user];
         var frequency = 440 * Math.pow(2, ((key + octave) / 12));
-        instrument.start(frequency);
+
+        switch (user) {
+            case 0:
+                sine.start(frequency);
+                break;
+
+            case 1:
+                playDrums(key);
+
+                break;
+
+            case 2:
+                saw.start(frequency);
+                break;
+            case 3:
+                cowbell.start();
+                break;
+        }
+        console.log(frequency + "Hz");
     }
 
     //
@@ -1059,8 +1195,8 @@ else
         //key = notes - key;
         // this is WRONG!
         //var index:number = (step*notes) / key;
-        var index = step + (16 * key);
-        var $element = $($buttons[index]);
+        var i = step + (notes * key);
+        var $element = $($buttons[i]);
 
         selectBeat($element, user, false);
     }
@@ -1153,5 +1289,8 @@ else
     onActualResize(null);
     db.connect();
     netronome.start(bpm);
+
+    index = Math.abs(netronome.percentage * steps);
+
     $matrix.show();
 });
