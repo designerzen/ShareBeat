@@ -22,7 +22,18 @@ var audiobus;
                 this.gain = audioContext.createGain();
                 this.gain.connect(outputTo);
             }
+            Instrument.prototype.start = function () {
+                var args = [];
+                for (var _i = 0; _i < (arguments.length - 0); _i++) {
+                    args[_i] = arguments[_i + 0];
+                }
+            };
+
             Instrument.prototype.stop = function () {
+                var args = [];
+                for (var _i = 0; _i < (arguments.length - 0); _i++) {
+                    args[_i] = arguments[_i + 0];
+                }
             };
 
             Instrument.prototype.fadeIn = function (time) {
@@ -647,9 +658,14 @@ var audiobus;
     audiobus.Netronome = Netronome;
 })(audiobus || (audiobus = {}));
 ///<reference path="audiobus/definitions/jquery.d.ts" />
+///<reference path="audiobus/definitions/greensock.d.ts" />
 ///<reference path="audiobus/DrumMachine.ts" />
+//<reference path="audiobus/ISoundControl.ts" />
+///<reference path="audiobus/instruments/Instrument.ts" />
 ///<reference path="audiobus/instruments/Sine.ts" />
 ///<reference path="audiobus/instruments/BassDrum.ts" />
+///<reference path="audiobus/instruments/Conga.ts" />
+///<reference path="audiobus/instruments/HiHat.ts" />
 ///<reference path="audiobus/inputs/Microphone.ts" />
 ///<reference path="audiobus/visualisation/SpectrumAnalyzer.ts" />
 ///<reference path="audiobus/Netronome.ts" />
@@ -722,12 +738,13 @@ $(document).ready(function () {
     var drums = new audiobus.DrumMachine();
 
     var sine = new audiobus.instruments.Sine(drums.dsp, drums.gain);
-    var sineB = new audiobus.instruments.Sine(drums.dsp, drums.gain);
+    var hihat = new audiobus.instruments.HiHat(drums.dsp, drums.gain);
     var kick = new audiobus.instruments.BassDrum(drums.dsp, drums.gain);
-    var kickB = new audiobus.instruments.BassDrum(drums.dsp, drums.gain);
+    var cowbell = new audiobus.instruments.CowBell(drums.dsp, drums.gain);
+
     var netronome = new audiobus.Netronome(onEveryBeat, onProgress, this);
 
-    var instruments = [sine, kick, sineB, kickB];
+    var instruments = [sine, kick, hihat, cowbell];
 
     // fetch all foreign beats associated with
     function getOthersBeats(column) {
@@ -758,13 +775,8 @@ $(document).ready(function () {
             var data = userName + column;
             var $existing = $matrix.data(data);
 
-            if ($existing) {
+            if ($existing)
                 output += userName + " ";
-                //console.log("Found friend "+userName+" in this column");
-            } else {
-                //
-                //console.log("There are no other nodes for this friend ");
-            }
         }
         return output;
     }
@@ -819,12 +831,18 @@ $(document).ready(function () {
 
     // Privates
     // Beat commencing at point due to netronome...
-    function onEveryBeat(scope, t) {
+    function playUserInstrument(user, key) {
+        //var instrument:audiobus.instruments.Instrument = instruments[ user ];
+        var instrument = instruments[user];
+        var frequency = 440 * Math.pow(2, ((key + octave) / 12));
+        instrument.start(frequency);
+    }
+
+    function onEveryBeat(t) {
         for (var u = 0, l = userNames.length; u < l; ++u) {
             // fetch the user name
             var userName = userNames[u];
             var data = userName + index;
-            var instrument;
 
             var $element = $matrix.data(data);
             if ($element) {
@@ -834,20 +852,16 @@ $(document).ready(function () {
                 var column = position % steps;
                 var key = notes - (position / steps) >> 0;
 
-                instrument = instruments[u];
-
                 console.log(userName + " Beat " + index + " in key " + key + " occurred checking " + data);
 
                 // check to see if an existing note already exists
                 //$element = $( $buttons[ index ] );
                 // check to see if there are any nodes registered here
                 //console.log( "Key found, not playing" );
-                var frequency = 440 * Math.pow(2, ((key + octave) / 12));
-
-                instrument.start(frequency);
+                playUserInstrument(u, key);
             } else {
                 //console.log("No Beat "+userName+" index:"+ index+" key:"+key);
-                instrument = instruments[u];
+                var instrument = instruments[u];
                 instrument.stop();
 
                 if (u == 0) {
@@ -867,8 +881,7 @@ $(document).ready(function () {
     }
 
     // Beat commencing at point due to netronome...
-    function onProgress(scope, percent) {
-        // scope is netronome :(
+    function onProgress(percent) {
         // console.log("Progress : "+percent);
         return true;
     }
@@ -981,6 +994,7 @@ else
 
     // finally inject boxes!
     $matrix.html(boxes);
+    $matrix.hide();
 
     var $buttons = $("article.button", $matrix);
     var $bar = $("div.progress", $matrix);
@@ -993,13 +1007,17 @@ else
     $buttons.mouseout(onBeatRolledOut);
     $buttons.click(onBeatPressed);
 
+    // now before we reveal the $matrix...
+    // let's hide all oour buttons then stagger them in with GSAP
+    //TweenMax.staggerToFrom( $buttons, 1, { alpha:0 }, { alpha:1 }, 1 )//.onComplete( function(){ $matrix.show(); } );
+    //TweenMax.staggerTo( $buttons, 1, {alpha:1 }, 1 , $matrix.show )//.onComplete( function(){ $matrix.show(); } );
     $(window).resize(onMatrixResize);
 
     $(window).keydown(function (event) {
         if (event.which == 13) {
             event.preventDefault();
         }
-        var user = 1;
+        var user = 1 + (Math.random() * 3) >> 0;
         var step = (Math.random() * 16) >> 0;
         var key = (Math.random() * 16) >> 0;
         onForeignBeat(user, step, key);
@@ -1008,4 +1026,5 @@ else
 
     onActualResize(null);
     netronome.start(bpm);
+    $matrix.show();
 });

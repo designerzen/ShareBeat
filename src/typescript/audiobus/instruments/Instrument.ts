@@ -27,8 +27,12 @@ module audiobus.instruments
 			this.gain = audioContext.createGain();
 			this.gain.connect( outputTo );
 		}
+		public start(...args: any[]):void
+		{
+			
+		}
 		
-		public stop():void
+		public stop(...args: any[]):void
 		{
 			
 		}
