@@ -1,8 +1,9 @@
 ///<reference path="../definitions/waa.d.ts" />
 ///<reference path="Instrument.ts" />
+///<reference path="../ISoundControl.ts" />
 module audiobus.instruments
 {
-    export class Sine extends Instrument
+    export class Sine extends Instrument implements ISoundControl
     {
 		private osc:OscillatorNode;
 		

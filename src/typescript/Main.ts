@@ -109,15 +109,10 @@ $(document).ready(function(){
 	var sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
 	var sineB = new audiobus.instruments.Sine( drums.dsp, drums.gain );
 	var saw = new audiobus.instruments.Saw( drums.dsp, drums.gain );
-	var snare = new audiobus.instruments.Snare( drums.dsp, drums.gain );
-	var hihat = new audiobus.instruments.HiHat( drums.dsp, drums.gain );
-	var kick = new audiobus.instruments.BassDrum( drums.dsp, drums.gain );
-	var cowbell = new audiobus.instruments.CowBell( drums.dsp, drums.gain );
-	var conga = new audiobus.instruments.Conga( drums.dsp, drums.gain );
 	
 	var netronome = new audiobus.Netronome( onEveryBeat, onProgress, this );
 	
-	var instruments:audiobus.instruments.Instrument[] = [ sine, kick, hihat, cowbell ];
+	//var instruments:audiobus.instruments.Instrument[] = [ sine, kick, hihat, cowbell ];
 	
 	// fetch all foreign beats associated with 
 	function getOthersBeats( column )
@@ -171,7 +166,7 @@ $(document).ready(function(){
 		var $existing = $matrix.data( data );
 		var className = "selected user"+userName + " ";
 		
-		console.log("Adding beat to user "+user+" key:"+key);
+		//console.log("Adding beat to user "+user+" key:"+key);
 		
 		if ( $existing ) 
 		{
@@ -215,102 +210,26 @@ $(document).ready(function(){
 		$matrix.removeData( data  );
 	}
 	
-	function playDrums( key:number )
-	{
-		/*
-		 sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
-		var hihat = new audiobus.instruments.HiHat( drums.dsp, drums.gain );
-		var kick = new audiobus.instruments.BassDrum( drums.dsp, drums.gain );
-		var cowbell = new audiobus.instruments.CowBell( drums.dsp, drums.gain );
-		var conga =
-	*/
-		switch( key )
-		{
-			case 0:
-				kick.start(2050, 0.005, 0.01, 0.7);
-				break;			
-			case 1:
-				kick.start(4050, 0.007, 0.01, 0.6);
-				
-				break;			
-			case 2:
-				kick.start(8050, 0.008, 0.03, 0.5);
-				
-				break;			
-			case 3:
-				kick.start(12050, 0.005, 0.01, 0.4);
-				
-				break;
-				
-			case 4:
-				snare.start( 2050, 0.005, 0.01, 0.1);
-				break;			
-			case 5:
-				snare.start( 2050, 0.006, 0.02, 0.1);
-				break;			
-			case 6:
-				snare.start( 2050, 0.007, 0.03, 0.1);
-				break;			
-				
-			case 7:
-				snare.start( 2050, 0.008, 0.04, 0.1);
-				break;			
-			case 8:
-				conga.start( 1200, 0.160);
-				break;			
-			case 9:
-				conga.start( 2200, 0.260);
-				
-				break;			
-			case 10:
-				conga.start( 3200, 0.360);
-				
-				break;			
-			case 11:
-				conga.start( 4200, 0.460);
-				
-				break;			
-			case 12:
-				cowbell.start( 0.025, 0.05, 0.4);
-				break;			
-			case 13:
-				cowbell.start( 0.020, 0.04, 0.3);
-				break;			
-			case 14:
-				cowbell.start( 0.015, 0.03, 0.2);
-				break;			
-			case 15:
-				cowbell.start( 0.010, 0.02, 0.3);
-				break;			
-			case 16:
-				cowbell.start( 0.005, 0.01, 0.2);
-				break;
-			
-				
-		}
-	}
 	// Privates
 	
 	// Beat commencing at point due to netronome...
 	function playUserInstrument( user, key )
 	{
 		//var instrument:audiobus.instruments.Instrument = instruments[ user ];
-		var instrument = <audiobus.instruments.Instrument>instruments[ user ];
+		//var instrument = <audiobus.instruments.Instrument>instruments[ user ];
 		var frequency;
 		
 		switch( user )
 		{
 			// Simple sine wave
 			case 0:
-				console.log("Sine ... ");
 				frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );	
 				sine.start( frequency );
 				break;
 				
 			// DrumMachine kit
 			case 1:
-				playDrums( key );
-				
+				drums.trigger( key );
 				break;
 			
 			// Sine Bass
@@ -328,8 +247,33 @@ $(document).ready(function(){
 			
 			
 		}
-		console.log( frequency + "Hz" );
+		//console.log( frequency + "Hz" );
 		
+	}
+	function stopInstrument( user )
+	{
+		switch( user )
+		{
+			// Simple sine wave
+			case 0:
+				sine.stop( );
+				break;
+				
+			// DrumMachine kit
+			case 1:
+				//drums.trigger(  );
+				break;
+			
+			// Sine Bass
+			case 2:
+				sineB.stop( );
+				break;
+				
+			// Saw tooth
+			case 3:
+				saw.stop( );
+				break;
+		}
 	}
 	
 	// 
@@ -342,13 +286,11 @@ $(document).ready(function(){
 			var userName = userNames[u];
 			var data = userName + index;
 			
-			console.log("Looking for element "+data );
 			
 			var $element =  $matrix.data( data );
 			if ($element)
 			{
-				console.log( $element );
-			
+				
 				// so we have an element in our db!
 				var position = parseInt( $element.attr( "alt" ) );
 				var column = position % steps;
@@ -368,8 +310,8 @@ $(document).ready(function(){
 			}else{
 				//console.log("No Beat "+userName+" index:"+ index+" key:"+key);
 		
-				var instrument = <audiobus.instruments.Instrument>instruments[ u];
-				instrument.stop();
+				stopInstrument(u)
+				//.stop();
 			}
 		}
 		
@@ -398,7 +340,7 @@ $(document).ready(function(){
 		// check to see if it is already pressed...
 		var isActive = $this.data( "activeA" )|| false;
 		
-		console.log("Beat selected active:"+isActive);
+		//console.log("Beat selected active:"+isActive);
 		
 		if ( isActive ) onBeatDeselect( $this );
 		else onBeatRequest( $this );
@@ -577,7 +519,7 @@ $(document).ready(function(){
 	
 	
 	$( window ).resize( onMatrixResize );
-	
+	/*
 	$( window ).keydown(
 		function( event ) {
 			
@@ -591,7 +533,7 @@ $(document).ready(function(){
 			console.log("keypress "+event.which );
 		}
 	);
-	
+	*/
 	function onUnloaded()
 	{
 		db.disconnect();

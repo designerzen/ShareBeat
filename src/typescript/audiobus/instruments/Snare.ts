@@ -41,6 +41,7 @@ module audiobus.instruments
 				
 			this.noise.start(0);
 		}
+		
 	}
 	
 }

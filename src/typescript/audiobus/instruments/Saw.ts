@@ -33,6 +33,7 @@ module audiobus.instruments
 			
 			this.osc.start(0);	
 		}
+		
 	}
 	
 }

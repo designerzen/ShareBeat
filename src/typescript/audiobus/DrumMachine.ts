@@ -90,22 +90,67 @@ module audiobus
 		{
 			switch (id)
 			{
+			
+				default:
+				case 0:
+					this.bassdrum.start(2050, 0.005, 0.01, 0.7);
+					break;			
 				case 1:
-					this.snare.start();
-					break;
+					this.bassdrum.start(4050, 0.007, 0.01, 0.6);
+					
+					break;			
 				case 2:
-					this.hihat.start();
-					break;
+					this.bassdrum.start(8050, 0.008, 0.03, 0.5);
+					
+					break;			
 				case 3:
-					this.conga.start();
-					break;
-				case 4:
-					this.cowbell.start();
+					this.bassdrum.start(12050, 0.005, 0.01, 0.4);
+					
 					break;
 					
-				case 0:
-				default:
-					this.bassdrum.start();
+				case 4:
+					this.snare.start( 2050, 0.005, 0.01, 0.1);
+					break;			
+				case 5:
+					this.snare.start( 2050, 0.006, 0.02, 0.1);
+					break;			
+				case 6:
+					this.snare.start( 2050, 0.007, 0.03, 0.1);
+					break;			
+					
+				case 7:
+					this.snare.start( 2050, 0.008, 0.04, 0.1);
+					break;			
+				case 8:
+					this.conga.start( 1200, 0.160);
+					break;			
+				case 9:
+					this.conga.start( 2200, 0.260);
+					
+					break;			
+				case 10:
+					this.conga.start( 3200, 0.360);
+					
+					break;			
+				case 11:
+					this.conga.start( 4200, 0.460);
+					
+					break;			
+				case 12:
+					this.cowbell.start( 0.025, 0.05, 0.4);
+					break;			
+				case 13:
+					this.cowbell.start( 0.020, 0.04, 0.3);
+					break;			
+				case 14:
+					this.cowbell.start( 0.015, 0.03, 0.2);
+					break;			
+				case 15:
+					this.cowbell.start( 0.010, 0.02, 0.3);
+					break;			
+				case 16:
+					this.cowbell.start( 0.005, 0.01, 0.2);
+					break;
 			}
 		}
 	}

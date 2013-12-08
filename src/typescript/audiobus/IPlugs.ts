@@ -11,7 +11,7 @@ The main points to notice :
 	getOutput
 */
 
-interface Navigator {
+interface IPlugs {
 			getUserMedia(
 				options: { video?: boolean; audio?: boolean; }, 
 				success: (stream: any) => void, 
