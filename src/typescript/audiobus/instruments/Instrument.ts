@@ -36,7 +36,7 @@ module audiobus.instruments
 		
 		public stop(...args: any[]):void
 		{
-			
+			this.gain.gain.value = 0;
 		}
 		
 		public fadeIn( time:number=0.1 ):void

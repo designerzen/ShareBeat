@@ -672,7 +672,7 @@ article.userA:hover {
   text-decoration: none;
 }
 article.userB {
-  background-color: #e65040;
+  background-color: #b59e3e;
 }
 article.userB:hover {
   background-color: #aa2416;
@@ -680,7 +680,7 @@ article.userB:hover {
   text-decoration: none;
 }
 article.userC {
-  background-color: #f2a29a;
+  background-color: #347d3e;
 }
 article.userC:hover {
   background-color: #aa2416;
@@ -688,7 +688,7 @@ article.userC:hover {
   text-decoration: none;
 }
 article.userD {
-  background-color: #fef5f4;
+  background-color: #5f4a69;
 }
 article.userD:hover {
   background-color: #aa2416;
@@ -696,28 +696,28 @@ article.userD:hover {
   text-decoration: none;
 }
 article.userA.userB {
-  background-color: #c83a2b;
+  background-color: #b0612a;
 }
 article.userA.userC {
-  background-color: #ce6358;
+  background-color: #6f512a;
 }
 article.userA.userD {
-  background-color: #d48d85;
+  background-color: #853740;
 }
 article.userA.userB.userC {
-  background-color: #dd6e62;
+  background-color: #726f34;
 }
 article.userA.userB.userD {
-  background-color: #e39890;
+  background-color: #87564a;
 }
 article.userA.userC.userD {
-  background-color: #e6aca6;
+  background-color: #674d4a;
 }
 article.userA.userB.userC.userD {
-  background-color: #e08379;
+  background-color: #7d623f;
 }
 article.userA.userB.userC.userD {
-  background-color: #c83a2b;
+  background-color: #b0612a;
 }
 div,
 h2 {

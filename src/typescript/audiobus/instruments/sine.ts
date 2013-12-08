@@ -34,10 +34,6 @@ module audiobus.instruments
 			this.osc.start(0);	
 		}
 		
-		public stop():void
-		{
-			this.gain.gain.value = 0;
-		}
 	}
 	
 }

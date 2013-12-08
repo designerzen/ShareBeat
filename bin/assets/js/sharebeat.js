@@ -34,6 +34,7 @@ var audiobus;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     args[_i] = arguments[_i + 0];
                 }
+                this.gain.gain.value = 0;
             };
 
             Instrument.prototype.fadeIn = function (time) {
@@ -442,10 +443,6 @@ var audiobus;
                 //this.gain.gain.linearRampToValueAtTime(0.0,  t + 0.160);
                 this.osc.start(0);
             };
-
-            Sine.prototype.stop = function () {
-                this.gain.gain.value = 0;
-            };
             return Sine;
         })(instruments.Instrument);
         instruments.Sine = Sine;
@@ -483,10 +480,6 @@ var audiobus;
                 //this.gain.gain.exponentialRampToValueAtTime(0.5, 	t + 0.010);
                 //this.gain.gain.linearRampToValueAtTime(0.0,  t + 0.160);
                 this.osc.start(0);
-            };
-
-            Saw.prototype.stop = function () {
-                this.gain.gain.value = 0;
             };
             return Saw;
         })(instruments.Instrument);
@@ -903,6 +896,7 @@ $(document).ready(function () {
     var drums = new audiobus.DrumMachine();
 
     var sine = new audiobus.instruments.Sine(drums.dsp, drums.gain);
+    var sineB = new audiobus.instruments.Sine(drums.dsp, drums.gain);
     var saw = new audiobus.instruments.Saw(drums.dsp, drums.gain);
     var snare = new audiobus.instruments.Snare(drums.dsp, drums.gain);
     var hihat = new audiobus.instruments.HiHat(drums.dsp, drums.gain);
@@ -1074,10 +1068,12 @@ $(document).ready(function () {
     function playUserInstrument(user, key) {
         //var instrument:audiobus.instruments.Instrument = instruments[ user ];
         var instrument = instruments[user];
-        var frequency = 440 * Math.pow(2, ((key + octave) / 12));
+        var frequency;
 
         switch (user) {
             case 0:
+                console.log("Sine ... ");
+                frequency = 440 * Math.pow(2, ((key + octave) / 12));
                 sine.start(frequency);
                 break;
 
@@ -1087,10 +1083,13 @@ $(document).ready(function () {
                 break;
 
             case 2:
-                saw.start(frequency);
+                frequency = 440 * Math.pow(2, ((key + octave - 12) / 12));
+                sineB.start(frequency);
                 break;
+
             case 3:
-                cowbell.start();
+                frequency = 440 * Math.pow(2, ((key + octave) / 12));
+                saw.start(frequency);
                 break;
         }
         console.log(frequency + "Hz");
@@ -1103,9 +1102,12 @@ $(document).ready(function () {
             var userName = userNames[u];
             var data = userName + index;
 
+            console.log("Looking for element " + data);
+
             var $element = $matrix.data(data);
             if ($element) {
-                //console.log( $element );
+                console.log($element);
+
                 // so we have an element in our db!
                 var position = parseInt($element.attr("alt"));
                 var column = position % steps;
@@ -1280,17 +1282,26 @@ else
         console.log("keypress " + event.which);
     });
 
-    // when user closes the window
-    window.onunload = function () {
+    function onUnloaded() {
         db.disconnect();
-        alert("Are you sure you wanna quit?");
-    };
+    }
 
+    // when user closes the window
+    window.onunload = onUnloaded;
+
+    /*() =>{
+    
+    alert("Are you sure you wanna quit? "+db );
+    
+    }*/
     onActualResize(null);
     db.connect();
     netronome.start(bpm);
 
-    index = Math.abs(netronome.percentage * steps);
+    var progress = netronome.percentage * steps;
+    index = progress >> 0;
 
+    //alert( "INDEX : " + index );
+    //index = 0;
     $matrix.show();
 });

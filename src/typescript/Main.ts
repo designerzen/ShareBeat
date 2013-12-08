@@ -105,6 +105,7 @@ $(document).ready(function(){
 	var drums  = new audiobus.DrumMachine();
 	
 	var sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
+	var sineB = new audiobus.instruments.Sine( drums.dsp, drums.gain );
 	var saw = new audiobus.instruments.Saw( drums.dsp, drums.gain );
 	var snare = new audiobus.instruments.Snare( drums.dsp, drums.gain );
 	var hihat = new audiobus.instruments.HiHat( drums.dsp, drums.gain );
@@ -293,13 +294,14 @@ $(document).ready(function(){
 	{
 		//var instrument:audiobus.instruments.Instrument = instruments[ user ];
 		var instrument = <audiobus.instruments.Instrument>instruments[ user ];
-		var frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );	
-		
+		var frequency;
 		
 		switch( user )
 		{
 			// Simple sine wave
 			case 0:
+				console.log("Sine ... ");
+				frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );	
 				sine.start( frequency );
 				break;
 				
@@ -308,12 +310,16 @@ $(document).ready(function(){
 				playDrums( key );
 				
 				break;
-				
+			
+			// Saw tooth
 			case 2:
-				saw.start( frequency );
+				frequency = 440 * Math.pow(2, ( (key + octave - 12) / 12 ) );	
+				sineB.start( frequency );
 				break;
+				
 			case 3:
-				cowbell.start();
+				frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );	
+				saw.start( frequency );
 				break;
 			
 			
@@ -333,10 +339,12 @@ $(document).ready(function(){
 			var userName = userNames[u];
 			var data = userName + index;
 			
+			console.log("Looking for element "+data );
+			
 			var $element =  $matrix.data( data );
 			if ($element)
 			{
-				//console.log( $element );
+				console.log( $element );
 			
 				// so we have an element in our db!
 				var position = parseInt( $element.attr( "alt" ) );
@@ -545,17 +553,29 @@ $(document).ready(function(){
 		}
 	);
 	
-	// when user closes the window
-	window.onunload = () =>{
+	function onUnloaded()
+	{
 		db.disconnect();
-		alert("Are you sure you wanna quit?");
 	}
+	
+	// when user closes the window
+	window.onunload = onUnloaded;
+	
+	/*() =>{
+		
+		alert("Are you sure you wanna quit? "+db );
+		
+	}*/
 		
 	onActualResize( null );
 	db.connect();
 	netronome.start( bpm );
 	
-	index = Math.abs(netronome.percentage * steps);
+	var progress:number = netronome.percentage * steps;
+	index = progress >> 0;
+	
+	//alert( "INDEX : " + index );
+	//index = 0;
 	
 	$matrix.show();
 });
