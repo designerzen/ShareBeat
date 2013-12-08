@@ -36,7 +36,6 @@ module audiobus.instruments
 		
 		public stop():void
 		{
-			console.log("Sine stopping" );
 			this.gain.gain.value = 0;
 		}
 	}

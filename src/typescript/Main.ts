@@ -13,6 +13,7 @@
 ///<reference path="audiobus/visualisation/SpectrumAnalyzer.ts" />
 
 ///<reference path="audiobus/Netronome.ts" />
+///<reference path="FireBaseAPI.ts" />
 class Main 
 {
 	
@@ -97,6 +98,7 @@ $(document).ready(function(){
 	var octave = -10;
 	var bpm = 200;
 	
+	var db = new FireBaseAPI( onForeignBeat );
 	var drums  = new audiobus.DrumMachine();
 	
 	var sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
@@ -148,15 +150,19 @@ $(document).ready(function(){
 	}
 		
 	
-	function selectBeat( $element, user:number=0 )
+	function selectBeat( $element, user:number=0, save:boolean=true )
 	{
 		var userName = userNames[user];
 		var index = parseInt( $element.attr( "alt" ) );
 		var column = index % steps;
-		var key = (index / steps) >> 0;
+		var originalKey = (index / steps) >> 0;
+		var key = notes - originalKey;
+				
 		var data = userName + column;
 		var $existing = $matrix.data( data );
 		var className = "selected user"+userName + " ";
+		
+		console.log("Adding beat to user "+user+" key:"+key);
 		
 		if ( $existing ) 
 		{
@@ -180,6 +186,9 @@ $(document).ready(function(){
 		
 		// set in global data base
 		$matrix.data( data, $element  );
+		
+		// set in cloud data base
+		if (save) db.sendData( column, originalKey );
 	}
 	
 	function deselectBeat( $element:JQuery, user:number=0 )
@@ -209,6 +218,7 @@ $(document).ready(function(){
 		instrument.start( frequency );
 	}
 	
+	// 
 	function onEveryBeat( t )
 	{
 		// check all users...
@@ -228,7 +238,7 @@ $(document).ready(function(){
 				var column = position % steps;
 				var key = notes - (position / steps) >> 0;
 				
-				console.log(userName+" Beat "+index+" in key "+key+" occurred checking "+data);
+				// console.log(userName+" Beat "+index+" in key "+key+" occurred checking "+data);
 			
 				// check to see if an existing note already exists
 			
@@ -244,21 +254,15 @@ $(document).ready(function(){
 		
 				var instrument = <audiobus.instruments.Instrument>instruments[ u];
 				instrument.stop();
-				
-				//sine.stop();
-				if ( u == 0 ) 
-				{
-					//console.log("Stopping note "+ $element);
-					
-					//sine.fadeOut();
-				}
 			}
 		}
 		
-		// move bar to correct position 
-		$bar.css( "left", (index*100/16)+"%" );
 		
-		console.log("Beat "+index+" occurred bar : "+(index*100/16));
+		
+		// move bar to correct position 
+		$bar.css( "left", (index*100/steps)+"%" );
+		
+		//console.log("Beat "+index+" occurred bar : "+(index*100/16));
 			
 		index = (index+1) % steps;	// find relevant step
 		return index;
@@ -287,13 +291,13 @@ $(document).ready(function(){
 	// Beat has been pressed
 	function onBeatRequest($element)
 	{
-		selectBeat( $element, 0 );
+		selectBeat( $element, db.userid );
 	}
 	
 	// Beat has been pressed
 	function onBeatDeselect($element)
 	{
-		deselectBeat( $element, 0 );
+		deselectBeat( $element, db.userid );
 	}
 	
 	function onBeatPressed(event)
@@ -301,8 +305,8 @@ $(document).ready(function(){
 		var $this = $( this );
 		var isActive = $this.data( "activeA" ) || false;
 		
-		if (isActive) deselectBeat( $this, 0 );
-		else selectBeat( $this, 0 );
+		if (isActive) deselectBeat( $this, db.userid );
+		else selectBeat( $this, db.userid );
 		//console.log("Beat pressed");
 		
 	}
@@ -320,20 +324,25 @@ $(document).ready(function(){
 	
 	function onBeatRolledOut()
 	{
-		console.log("Beat out");
+		//console.log("Beat out");
 		$(this).removeClass("over");
 		//$( this ).unbind( "mouseout" );
 		
 	}
 	
 	// Foreign events from web service!
-	function onForeignBeat( user, step, key )
+	function onForeignBeat( user:number, step:number, key:number )
 	{
+		//alert("on foreign beat");
 		// figure out where the beat is on the system...
-		var index:number = step * key;
+		
+		//key = notes - key;
+		// this is WRONG!
+		//var index:number = (step*notes) / key;
+		var index:number = step+(notes*key);
 		var $element:JQuery = $( $buttons[ index ] );
 		
-		selectBeat( $element, user );
+		selectBeat( $element, user, false );
 	}
 	
 	// Mouse events
@@ -353,7 +362,7 @@ $(document).ready(function(){
 	function onMatrixResize(event)
 	{
 		if (timeout) clearTimeout(timeout);
-		timeout = setTimeout( onActualResize, 500 ); 
+		timeout = setTimeout( onActualResize, 400 ); 
 	}
 	
 	// Screen resize
@@ -366,12 +375,12 @@ $(document).ready(function(){
 		if ( screenWidth < screenHeight )
 		{
 			// no scrollbar
-			console.log( "safe height for matrix "+screenHeight+" with "+$matrix.height() );
+			//console.log( "safe height for matrix "+screenHeight+" with "+$matrix.height() );
 			$content.width( "100%" );
 			$content.css( "margin-left", 0 );
 		}else{
 			// scroll bar so readjust size
-			console.log( "matrix exceeding height "+screenHeight+" with "+$matrix.height() );
+			//console.log( "matrix exceeding height "+screenHeight+" with "+$matrix.height() );
 			$content.width( screenHeight + "px" );
 			var leftOver = $(window).width() - screenHeight;
 			$content.css( "margin-left", leftOver * 0.5 );
@@ -431,7 +440,14 @@ $(document).ready(function(){
 		}
 	);
 	
+	// when user closes the window
+	window.onunload = () =>{
+		db.disconnect();
+		alert("Are you sure you wanna quit?");
+	}
+		
 	onActualResize( null );
+	db.connect();
 	netronome.start( bpm );
 	$matrix.show();
 });

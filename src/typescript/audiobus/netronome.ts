@@ -24,9 +24,7 @@ module audiobus
 			if ( beatsPerMinute < 1 ) return this.getBpm();
 			var seconds:number = 60 / beatsPerMinute ;
 			
-			
 			this.period = seconds * 1000;
-			
 			
 			this.lastBarTimeStamp = this.determineStartTime();
 			return beatsPerMinute;
@@ -65,6 +63,7 @@ module audiobus
 			// begin!	
 			requestAnimationFrame( () =>  this.onTimer() );
 		}
+		
 		public stop():void
 		{
 			this.playing = false;

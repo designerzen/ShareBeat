@@ -20,6 +20,7 @@ module audiobus.instruments
 			return this.gain.gain;
 		}
 		*/
+		
 		// create
 		constructor( audioContext:AudioContext, outputTo:GainNode )
 		{
@@ -27,6 +28,7 @@ module audiobus.instruments
 			this.gain = audioContext.createGain();
 			this.gain.connect( outputTo );
 		}
+		
 		public start(...args: any[]):void
 		{
 			

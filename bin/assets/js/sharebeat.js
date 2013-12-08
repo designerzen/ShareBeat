@@ -442,7 +442,6 @@ var audiobus;
             };
 
             Sine.prototype.stop = function () {
-                console.log("Sine stopping");
                 this.gain.gain.value = 0;
             };
             return Sine;
@@ -582,6 +581,7 @@ var audiobus;
                 return _this.onTimer();
             });
         };
+
         Netronome.prototype.stop = function () {
             this.playing = false;
         };
@@ -657,6 +657,118 @@ var audiobus;
     })();
     audiobus.Netronome = Netronome;
 })(audiobus || (audiobus = {}));
+///<reference path="audiobus/definitions/firebase.d.ts" />
+var FireBaseAPI = (function () {
+    function FireBaseAPI(onNoteCallback) {
+        this.firstRun = true;
+        this.max = 4;
+        this.userid = -1;
+        this.callback = onNoteCallback;
+    }
+    FireBaseAPI.prototype.connect = function () {
+        var _this = this;
+        this.io = new Firebase('https://sharebeat.firebaseio.com/');
+        this.usersRef = this.io.child('users');
+        this.dataRef = this.io.child('data');
+
+        console.log("Frebase API connectin..." + this.io);
+
+        // startup event : load whatever is in db
+        this.io.on('child_added', function (s) {
+            return _this.onChildAdded(s);
+        });
+
+        this.dataRef.on('value', function (s) {
+            return _this.onAudioData(s);
+        });
+    };
+
+    FireBaseAPI.prototype.disconnect = function () {
+        if (this.userid != -1) {
+            this.unregisterUser();
+        }
+    };
+
+    FireBaseAPI.prototype.onChildAdded = function (s) {
+        var n = s.name();
+        var v = s.val();
+
+        if ((this.firstRun == true) && (n == 'users')) {
+            //console.log('name = ' + n);
+            //console.log('value = ' + print(val) );
+            //console.table(v)
+            console.log('New user found ============= ');
+            this.firstRun = false;
+            this.registerUser(v);
+            return true;
+        }
+    };
+
+    FireBaseAPI.prototype.onChildChanged = function (s) {
+        // var n = s.name();
+        // var v = s.val();
+        // v == -1 ?
+        // console.log( n + ' just left!') :
+        // console.log( n + ' just joined the community');
+    };
+
+    FireBaseAPI.prototype.onAudioData = function (snapShot) {
+        var n = snapShot.name();
+        var v = snapShot.val();
+
+        if (v == null)
+            return;
+
+        // Check to see if this is YOUR data!
+        var uid = parseInt(v.id);
+
+        if (this.userid == uid)
+            return;
+        console.log(v);
+
+        //var u = parseInt( n.substring( n.length -1 ) );
+        /*
+        
+        // id
+        v.id;
+        // note
+        v.n;
+        // step
+        v.s;
+        */
+        this.callback(uid, v.s, v.n);
+    };
+
+    FireBaseAPI.prototype.sendData = function (step, note) {
+        this.dataRef.set({ 'id': this.userid, 's': step, 'n': note });
+    };
+
+    // register user in db and assign unique userid
+    // WTF IS V????
+    FireBaseAPI.prototype.registerUser = function (v) {
+        var ctr = 0;
+        for (var x in v) {
+            if (v[x] == -1) {
+                console.log('a free slot was found for this user ' + ctr);
+                this.userid = ctr;
+                this.io.child('users').child('user' + this.userid).set(this.userid);
+                this.io.child('data').child('user' + this.userid).remove();
+                return true;
+            }
+            ctr++;
+        }
+
+        alert('This room is full');
+        return false;
+    };
+
+    // remove user presence and data from db
+    FireBaseAPI.prototype.unregisterUser = function () {
+        this.io.child('data').child('user' + this.userid).remove();
+        this.io.child('users').child('user' + this.userid).set(-1);
+    };
+    return FireBaseAPI;
+})();
 ///<reference path="audiobus/definitions/jquery.d.ts" />
 ///<reference path="audiobus/definitions/greensock.d.ts" />
 ///<reference path="audiobus/DrumMachine.ts" />
@@ -669,6 +781,7 @@ var audiobus;
 ///<reference path="audiobus/inputs/Microphone.ts" />
 ///<reference path="audiobus/visualisation/SpectrumAnalyzer.ts" />
 ///<reference path="audiobus/Netronome.ts" />
+///<reference path="FireBaseAPI.ts" />
 var Main = (function () {
     function Main() {
         var _this = this;
@@ -735,6 +848,7 @@ $(document).ready(function () {
     var octave = -10;
     var bpm = 200;
 
+    var db = new FireBaseAPI(onForeignBeat);
     var drums = new audiobus.DrumMachine();
 
     var sine = new audiobus.instruments.Sine(drums.dsp, drums.gain);
@@ -781,15 +895,20 @@ $(document).ready(function () {
         return output;
     }
 
-    function selectBeat($element, user) {
+    function selectBeat($element, user, save) {
         if (typeof user === "undefined") { user = 0; }
+        if (typeof save === "undefined") { save = true; }
         var userName = userNames[user];
         var index = parseInt($element.attr("alt"));
         var column = index % steps;
-        var key = (index / steps) >> 0;
+        var originalKey = (index / steps) >> 0;
+        var key = notes - originalKey;
+
         var data = userName + column;
         var $existing = $matrix.data(data);
         var className = "selected user" + userName + " ";
+
+        console.log("Adding beat to user " + user + " key:" + key);
 
         if ($existing) {
             deselectBeat($existing, user);
@@ -811,6 +930,9 @@ $(document).ready(function () {
         //$element.css( "background-color", colour );
         // set in global data base
         $matrix.data(data, $element);
+
+        if (save)
+            db.sendData(column, originalKey);
     }
 
     function deselectBeat($element, user) {
@@ -838,6 +960,7 @@ $(document).ready(function () {
         instrument.start(frequency);
     }
 
+    //
     function onEveryBeat(t) {
         for (var u = 0, l = userNames.length; u < l; ++u) {
             // fetch the user name
@@ -852,8 +975,7 @@ $(document).ready(function () {
                 var column = position % steps;
                 var key = notes - (position / steps) >> 0;
 
-                console.log(userName + " Beat " + index + " in key " + key + " occurred checking " + data);
-
+                // console.log(userName+" Beat "+index+" in key "+key+" occurred checking "+data);
                 // check to see if an existing note already exists
                 //$element = $( $buttons[ index ] );
                 // check to see if there are any nodes registered here
@@ -863,19 +985,13 @@ $(document).ready(function () {
                 //console.log("No Beat "+userName+" index:"+ index+" key:"+key);
                 var instrument = instruments[u];
                 instrument.stop();
-
-                if (u == 0) {
-                    //console.log("Stopping note "+ $element);
-                    //sine.fadeOut();
-                }
             }
         }
 
         // move bar to correct position
-        $bar.css("left", (index * 100 / 16) + "%");
+        $bar.css("left", (index * 100 / steps) + "%");
 
-        console.log("Beat " + index + " occurred bar : " + (index * 100 / 16));
-
+        //console.log("Beat "+index+" occurred bar : "+(index*100/16));
         index = (index + 1) % steps;
         return index;
     }
@@ -903,12 +1019,12 @@ else
 
     // Beat has been pressed
     function onBeatRequest($element) {
-        selectBeat($element, 0);
+        selectBeat($element, db.userid);
     }
 
     // Beat has been pressed
     function onBeatDeselect($element) {
-        deselectBeat($element, 0);
+        deselectBeat($element, db.userid);
     }
 
     function onBeatPressed(event) {
@@ -916,9 +1032,9 @@ else
         var isActive = $this.data("activeA") || false;
 
         if (isActive)
-            deselectBeat($this, 0);
+            deselectBeat($this, db.userid);
 else
-            selectBeat($this, 0);
+            selectBeat($this, db.userid);
         //console.log("Beat pressed");
     }
 
@@ -931,18 +1047,22 @@ else
     }
 
     function onBeatRolledOut() {
-        console.log("Beat out");
+        //console.log("Beat out");
         $(this).removeClass("over");
         //$( this ).unbind( "mouseout" );
     }
 
     // Foreign events from web service!
     function onForeignBeat(user, step, key) {
+        //alert("on foreign beat");
         // figure out where the beat is on the system...
-        var index = step * key;
+        //key = notes - key;
+        // this is WRONG!
+        //var index:number = (step*notes) / key;
+        var index = step + (16 * key);
         var $element = $($buttons[index]);
 
-        selectBeat($element, user);
+        selectBeat($element, user, false);
     }
 
     // Mouse events
@@ -959,7 +1079,7 @@ else
     function onMatrixResize(event) {
         if (timeout)
             clearTimeout(timeout);
-        timeout = setTimeout(onActualResize, 500);
+        timeout = setTimeout(onActualResize, 400);
     }
 
     // Screen resize
@@ -970,12 +1090,12 @@ else
 
         if (screenWidth < screenHeight) {
             // no scrollbar
-            console.log("safe height for matrix " + screenHeight + " with " + $matrix.height());
+            //console.log( "safe height for matrix "+screenHeight+" with "+$matrix.height() );
             $content.width("100%");
             $content.css("margin-left", 0);
         } else {
             // scroll bar so readjust size
-            console.log("matrix exceeding height " + screenHeight + " with " + $matrix.height());
+            //console.log( "matrix exceeding height "+screenHeight+" with "+$matrix.height() );
             $content.width(screenHeight + "px");
             var leftOver = $(window).width() - screenHeight;
             $content.css("margin-left", leftOver * 0.5);
@@ -1024,7 +1144,14 @@ else
         console.log("keypress " + event.which);
     });
 
+    // when user closes the window
+    window.onunload = function () {
+        db.disconnect();
+        alert("Are you sure you wanna quit?");
+    };
+
     onActualResize(null);
+    db.connect();
     netronome.start(bpm);
     $matrix.show();
 });
