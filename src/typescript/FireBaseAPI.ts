@@ -10,10 +10,13 @@ class FireBaseAPI
 	public userid:number = -1;
 
 	private callback:(user:number, step:number, key:number)=>any;
+	private callbackID:(user:number)=>any;
 	
-	constructor( onNoteCallback:(user:number, step:number, key:number)=>any )
+	constructor( onNoteCallback:(user:number, step:number, key:number)=>any, onUserID:(user:number)=>any )
 	{
 		this.callback = onNoteCallback;
+		
+		this.callbackID = onUserID;
 	}
 
 	public connect():void
@@ -112,6 +115,7 @@ class FireBaseAPI
 				this.userid = ctr;
 				this.io.child('users').child('user'+this.userid).set( this.userid );
 				this.io.child('data').child('user'+this.userid).remove();
+				this.callbackID( this.userid );
 				return true;
 			}
 			ctr++;

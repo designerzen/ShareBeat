@@ -548,6 +548,18 @@ body {
   color: #dccf98;
   background-color: #10110c;
 }
+body.sine {
+  background-color: #390c07;
+}
+body.drums {
+  background-color: #564b1d;
+}
+body.bass {
+  background-color: #0f2311;
+}
+body.saw {
+  background-color: #1b151e;
+}
 header,
 footer {
   border: 0;
@@ -561,19 +573,19 @@ footer {
 }
 ::-moz-selection {
   color: #10110c;
-  background-color: #d2d043;
+  background-color: #10110c;
 }
 ::selection {
   color: #10110c;
-  background-color: #d2d043;
+  background-color: #10110c;
 }
 ::-moz-selection {
   color: #10110c;
-  background-color: #d2d043;
+  background-color: #10110c;
 }
 ::selection {
   color: #10110c;
-  background-color: #d2d043;
+  background-color: #10110c;
 }
 #content {
   width: 100%;
@@ -599,7 +611,7 @@ footer {
   transition: all 0.2s;
 }
 article {
-  border: 1px #10110c thin;
+  border-right: 1px #10110c thin;
   background-color: #dccf98;
   -webkit-transition: all 0.2s;
   transition: all 0.2s;

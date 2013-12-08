@@ -700,11 +700,13 @@ var audiobus;
 })(audiobus || (audiobus = {}));
 ///<reference path="audiobus/definitions/firebase.d.ts" />
 var FireBaseAPI = (function () {
-    function FireBaseAPI(onNoteCallback) {
+    function FireBaseAPI(onNoteCallback, onUserID) {
         this.firstRun = true;
         this.max = 4;
         this.userid = -1;
         this.callback = onNoteCallback;
+
+        this.callbackID = onUserID;
     }
     FireBaseAPI.prototype.connect = function () {
         var _this = this;
@@ -794,6 +796,7 @@ var FireBaseAPI = (function () {
                 this.userid = ctr;
                 this.io.child('users').child('user' + this.userid).set(this.userid);
                 this.io.child('data').child('user' + this.userid).remove();
+                this.callbackID(this.userid);
                 return true;
             }
             ctr++;
@@ -877,13 +880,14 @@ var Main = (function () {
 
 // jQuery Commence!
 $(document).ready(function () {
-    var $matrix = $('#matrix'), $content = $('#content'), buttonHtml = 'article.button';
+    var $body = $('body'), $matrix = $('#matrix'), $content = $('#content'), buttonHtml = 'article.button';
 
     var timeout;
     var steps = 16;
     var notes = 16;
     var quantity = steps * notes;
     var mouseDown = false;
+    var isLoaded = false;
 
     var userNames = ["A", "B", "C", "D"];
     var colours = [""];
@@ -892,7 +896,7 @@ $(document).ready(function () {
     var octave = -10;
     var bpm = 200;
 
-    var db = new FireBaseAPI(onForeignBeat);
+    var db = new FireBaseAPI(onForeignBeat, onUserID);
     var drums = new audiobus.DrumMachine();
 
     var sine = new audiobus.instruments.Sine(drums.dsp, drums.gain);
@@ -1206,10 +1210,8 @@ else
     // Mouse events
     function onMouseDown(event) {
         mouseDown = true;
-        $matrix.mouseup(onMouseUp);
     }
     function onMouseUp(event) {
-        //sine.stop();
         mouseDown = false;
     }
 
@@ -1240,6 +1242,28 @@ else
         }
     }
 
+    function onUserID(id) {
+        id = id >> 0;
+        switch (id) {
+            case 0:
+                $body.addClass('sine');
+                break;
+
+            case 1:
+                $body.addClass('drums');
+                break;
+
+            case 2:
+                $body.addClass('bass');
+                break;
+
+            case 3:
+                $body.addClass('saw');
+                break;
+        }
+        isLoaded = true;
+    }
+
     // BEGIN
     // loop through here and create our 16 x 16 grid
     var boxes = "";
@@ -1259,6 +1283,7 @@ else
 
     // first check for mouse down
     $matrix.mousedown(onMouseDown);
+    $matrix.mouseup(onMouseUp);
 
     // now convert each of these boxes into a specific ID
     $buttons.mouseover(onBeatRolledOver);
@@ -1289,11 +1314,6 @@ else
     // when user closes the window
     window.onunload = onUnloaded;
 
-    /*() =>{
-    
-    alert("Are you sure you wanna quit? "+db );
-    
-    }*/
     onActualResize(null);
     db.connect();
     netronome.start(bpm);

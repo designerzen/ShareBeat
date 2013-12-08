@@ -59,11 +59,17 @@ body{
 
 }
 
+			// Simple sine wave
+body.sine{	background-color: darken( @userA, 25% ); }
+body.drums{	background-color: darken(@userB, 25% ); }
+body.bass{	background-color: darken(@userC, 25% ); }
+body.saw{	background-color: darken(@userD, 25% ); }
+
 header, footer{
 	.visuallyhidden();
 }
 
-.selection( @brown,@green );
+.selection( @brown,@brown );
 
 // square of squares
 @box-width : 100 / @steps;
@@ -100,7 +106,7 @@ header, footer{
 
 article{
 	
-	border:1px @brown thin;
+	border-right:1px @brown thin;
 	
 	@size : @box-width + 0%;
 	background-color:@grey;

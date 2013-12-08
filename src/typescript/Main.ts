@@ -84,7 +84,8 @@ class Main
 // jQuery Commence!
 $(document).ready(function(){
 	
-	var $matrix = $('#matrix'),
+	var $body = $('body'),
+		$matrix = $('#matrix'),
 		$content = $('#content'),
 		buttonHtml = 'article.button';
 		
@@ -93,6 +94,7 @@ $(document).ready(function(){
 	var notes = 16;
 	var quantity = steps * notes;
 	var mouseDown = false;
+	var isLoaded:boolean = false;
 	
 	var userNames = [ "A", "B", "C", "D" ];
 	var colours = [ "" ];
@@ -101,7 +103,7 @@ $(document).ready(function(){
 	var octave = -10;
 	var bpm = 200;
 	
-	var db = new FireBaseAPI( onForeignBeat );
+	var db = new FireBaseAPI( onForeignBeat, onUserID );
 	var drums  = new audiobus.DrumMachine();
 	
 	var sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
@@ -311,12 +313,13 @@ $(document).ready(function(){
 				
 				break;
 			
-			// Saw tooth
+			// Sine Bass
 			case 2:
 				frequency = 440 * Math.pow(2, ( (key + octave - 12) / 12 ) );	
 				sineB.start( frequency );
 				break;
 				
+			// Saw tooth
 			case 3:
 				frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );	
 				saw.start( frequency );
@@ -463,11 +466,10 @@ $(document).ready(function(){
 	function onMouseDown(event)
 	{
 		mouseDown = true;
-		$matrix.mouseup( onMouseUp );
+		
 	}
 	function onMouseUp(event)
 	{
-		//sine.stop();
 		mouseDown = false;
 	}
 	
@@ -502,7 +504,33 @@ $(document).ready(function(){
 		
 	}
 	
-	
+	function onUserID( id:number )
+	{
+		id = id >> 0;
+		switch( id )
+		{
+			// Simple sine wave
+			case 0:
+				$body.addClass('sine');
+				break;
+				
+			// DrumMachine kit
+			case 1:
+				$body.addClass('drums');
+				break;
+			
+			// Sine Bass
+			case 2:
+				$body.addClass('bass');
+				break;
+				
+			// Saw tooth
+			case 3:
+				$body.addClass('saw');
+				break;
+		}
+		isLoaded = true;
+	}
 	
 	// BEGIN
 	
@@ -525,6 +553,7 @@ $(document).ready(function(){
 	
 	// first check for mouse down
 	$matrix.mousedown( onMouseDown );
+	$matrix.mouseup( onMouseUp );
 	
 	// now convert each of these boxes into a specific ID
 	$buttons.mouseover( onBeatRolledOver );
@@ -561,12 +590,6 @@ $(document).ready(function(){
 	// when user closes the window
 	window.onunload = onUnloaded;
 	
-	/*() =>{
-		
-		alert("Are you sure you wanna quit? "+db );
-		
-	}*/
-		
 	onActualResize( null );
 	db.connect();
 	netronome.start( bpm );
