@@ -683,6 +683,12 @@ article:hover {
 article img {
   max-width: 100%;
 }
+article:nth-child(odd) {
+  background-color: #e0d4a3;
+}
+body.drums article:nth-child(odd) {
+  background-color: #e0d4a3;
+}
 article.selected {
   z-index: 999;
   background-color: #d2d043;

@@ -158,12 +158,20 @@ article{
 	img { 
 		max-width: 100%; 
 	}
-
+	
+	&:nth-child(odd) {
+		background-color:lighten(@grey, 3%);
+	}
 }
+
 body.drums{
+	
 	// nth child rows!
 	article{
 		
+		&:nth-child(odd) {
+			background-color:lighten(@grey, 3%);
+		}
 	}
 	
 }

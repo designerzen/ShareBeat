@@ -31,7 +31,6 @@ var audiobus;
 
             Instrument.prototype.stop = function () {
                 this.gain.gain.value = 0;
-                //console.log( this+ " stop "+this.gain.gain.value );
             };
 
             Instrument.prototype.fadeIn = function (time) {
