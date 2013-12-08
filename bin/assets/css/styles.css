@@ -540,13 +540,21 @@ h6 {
   margin-bottom: 24px;
   margin-bottom: 1.5rem;
 }
+html {
+  width: 100%;
+  height: 100%;
+  display: bock;
+}
 body {
   position: relative;
   width: 100%;
   min-height: 100%;
   height: 100%;
+  display: block;
   color: #dccf98;
   background-color: #10110c;
+  -webkit-transition: background-color 0.4s;
+  transition: background-color 0.4s;
 }
 body.sine {
   background-color: #390c07;
@@ -609,6 +617,15 @@ footer {
   display: block;
   -webkit-transition: all 0.2s;
   transition: all 0.2s;
+}
+body.loading {
+  background-color: #dccf98;
+  background-image: url("../img/gif/loader.gif");
+  background-position: center;
+  background-repeat: no-repeat;
+}
+body.loading #matrix {
+  visibility: hidden;
 }
 article {
   border-right: 1px #10110c thin;

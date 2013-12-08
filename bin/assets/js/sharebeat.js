@@ -802,7 +802,7 @@ var FireBaseAPI = (function () {
             ctr++;
         }
 
-        alert('This room is full');
+        alert('T  his room is full');
         return false;
     };
 
@@ -1262,6 +1262,15 @@ else
                 break;
         }
         isLoaded = true;
+        $body.removeClass("loading");
+        netronome.start(bpm);
+
+        var progress = netronome.percentage * steps;
+        index = progress >> 0;
+
+        //alert( "INDEX : " + index );
+        //index = 0;
+        $matrix.show();
     }
 
     // BEGIN
@@ -1311,17 +1320,13 @@ else
         db.disconnect();
     }
 
+    $body.addClass("loading");
+
     // when user closes the window
     window.onunload = onUnloaded;
 
     onActualResize(null);
+
+    // Kick things off!
     db.connect();
-    netronome.start(bpm);
-
-    var progress = netronome.percentage * steps;
-    index = progress >> 0;
-
-    //alert( "INDEX : " + index );
-    //index = 0;
-    $matrix.show();
 });

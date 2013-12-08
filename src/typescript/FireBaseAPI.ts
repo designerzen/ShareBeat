@@ -121,7 +121,7 @@ class FireBaseAPI
 			ctr++;
 		}
 		
-		alert('This room is full');
+		alert('T  his room is full');
 		return false;
 	}
 	

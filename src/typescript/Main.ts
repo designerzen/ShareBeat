@@ -530,6 +530,16 @@ $(document).ready(function(){
 				break;
 		}
 		isLoaded = true;
+		$body.removeClass("loading");
+		netronome.start( bpm );
+		
+		var progress:number = netronome.percentage * steps;
+		index = progress >> 0;
+		
+		//alert( "INDEX : " + index );
+		//index = 0;
+		
+		$matrix.show();
 	}
 	
 	// BEGIN
@@ -587,18 +597,14 @@ $(document).ready(function(){
 		db.disconnect();
 	}
 	
+	
+	$body.addClass("loading");
 	// when user closes the window
 	window.onunload = onUnloaded;
 	
 	onActualResize( null );
+	
+	// Kick things off!
 	db.connect();
-	netronome.start( bpm );
-	
-	var progress:number = netronome.percentage * steps;
-	index = progress >> 0;
-	
-	//alert( "INDEX : " + index );
-	//index = 0;
-	
-	$matrix.show();
+		
 });
