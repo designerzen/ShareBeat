@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	
+	<style>
+	body{ margin:0; border:0;}
+	</style>
+	<script src='https://cdn.firebase.com/v0/firebase.js'></script>
+	<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js'></script>
+
+</head>
+  
+<body>
+ 	
+	<script>
+	var io = new Firebase('https://sharebeat.firebaseio.com');
+
+	io.on('child_added', function(snapshot) {
+		
+		var msg= snapshot.val();
+		
+		var s = '<p>';
+		
+		for( var i in msg){
+			s += i + ' = ' + msg[i] + '<br/>';
+		}
+		s += '</p>';
+		
+		document.getElementsByTagName('body')[0].innerHTML = s;
+				
+	})		
+		
+		
+	window.onload = function(){
+	
+			io.child('data').remove();
+			
+		var usersRef 	= io.child('users');
+		
+		var 	users = usersRef.set({
+							user0 : -1,
+							user1 : -1,
+							user2 : -1,
+							user3 : -1
+							});
+		
+		io.child('data').remove()
+		var dataRef 	= io.child('data');
+
+		var user0data =	dataRef.child('user1');
+		var user1data = 	dataRef.child('user2');
+		var user2data = 	dataRef.child('user3');
+		var user3data = 	dataRef.child('user4');
+		
+		console.log(usersRef);
+	
+	}
+	</script>
+
+</body>
+</html>

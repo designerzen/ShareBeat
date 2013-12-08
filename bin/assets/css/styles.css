@@ -655,6 +655,7 @@ article img {
   max-width: 100%;
 }
 article.selected {
+  z-index: 999;
   background-color: #d2d043;
 }
 article.selected:hover {
