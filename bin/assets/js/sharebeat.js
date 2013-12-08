@@ -31,7 +31,7 @@ var audiobus;
 
             Instrument.prototype.stop = function () {
                 this.gain.gain.value = 0;
-                console.log(this + " stop " + this.gain.gain.value);
+                //console.log( this+ " stop "+this.gain.gain.value );
             };
 
             Instrument.prototype.fadeIn = function (time) {
@@ -470,7 +470,7 @@ var audiobus;
                 this.osc.connect(this.gain);
             }
             Sine.prototype.start = function (frequency) {
-                console.log("Sine commencing at f:" + frequency);
+                //console.log("Sine commencing at f:"+frequency );
                 var t = this.context.currentTime;
 
                 this.osc.frequency.value = frequency;

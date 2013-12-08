@@ -19,7 +19,7 @@ module audiobus.instruments
 		
 		public start( frequency:number ):void
 		{
-			console.log("Sine commencing at f:"+frequency );
+			//console.log("Sine commencing at f:"+frequency );
 			var t:number = this.context.currentTime;
 			
 			this.osc.frequency.value = frequency;

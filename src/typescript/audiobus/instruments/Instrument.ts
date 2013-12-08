@@ -37,7 +37,6 @@ module audiobus.instruments
 		public stop():void
 		{
 			this.gain.gain.value = 0;
-			console.log( this+ " stop "+this.gain.gain.value );
 		}
 		
 		public fadeIn( time:number=0.1 ):void
