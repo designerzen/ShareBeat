@@ -7,29 +7,36 @@ class FireBaseAPI
 
 	private firstRun:boolean = true;
 	private max:number = 4;
+	
+	// -1 means an EMPTY user, in the db we Check a ROOM to see
+	// if there are any spaces 
 	public userid:number = -1;
 
 	private callback:(user:number, step:number, key:number)=>any;
 	private callbackID:(user:number)=>any;
 	
+	private roomName:String = "";
+	
+	private tagChild:String = "users";
+	private tagData:String = "data";
+	private tagUser:String = "";
+	
 	constructor( onNoteCallback:(user:number, step:number, key:number)=>any, onUserID:(user:number)=>any )
 	{
 		this.callback = onNoteCallback;
-		
 		this.callbackID = onUserID;
 	}
 
 	public connect():void
 	{
 		this.io = new Firebase('https://sharebeat.firebaseio.com/');
-		this.usersRef = this.io.child('users');
+		this.usersRef = this.io.child(tagChild);
 		this.dataRef = this.io.child('data');
 		
 		console.log("Frebase API connectin..."+this.io);
 
 		// startup event : load whatever is in db
 		this.io.on('child_added', (s) => this.onChildAdded(s) );
-	
 		this.dataRef.on('value', (s) =>  this.onAudioData(s) );
 	}
 	
@@ -45,9 +52,9 @@ class FireBaseAPI
 	private onChildAdded( s ):boolean
 	{
 		var n:String  = <String>s.name();
-		var v = s.val();
+		var v:IFirebaseDataSnapshot = s.val();
 		
-		if ((this.firstRun == true) && (n == 'users') )
+		if ((this.firstRun == true) && (n == tagChild) )
 		{
 			//console.log('name = ' + n);
 			//console.log('value = ' + print(val) );
@@ -60,7 +67,7 @@ class FireBaseAPI
 		}	
 	}
 	
-	private onChildChanged( s ):void
+	private onChildChanged( snapShot:IFirebaseDataSnapshot ):void
 	{
 		// var n = s.name();
 		// var v = s.val();
@@ -70,10 +77,10 @@ class FireBaseAPI
 		// console.log( n + ' just joined the community');
 	}
 	
-	private onAudioData( snapShot ):void
+	private onAudioData( snapShot:IFirebaseDataSnapshot ):void
 	{
 		var n = snapShot.name() ;
-		var v = snapShot.val() ;
+		var v:IFirebaseDataSnapshot = snapShot.val() ;
 		
 		
 		// ROOM DATA EMPTY!
@@ -103,17 +110,16 @@ class FireBaseAPI
 	}		
 	
 	// register user in db and assign unique userid	
-	// WTF IS V???? 
-	private registerUser( v ):boolean
+	private registerUser( snapShot:IFirebaseDataSnapshot ):boolean
 	{
-		var ctr = 0;
-		for( var x in v )
+		var ctr:number = 0;
+		for( var x in snapShot )
 		{
-			if( v[x] == -1 ) 
+			if( snapShot[x] == -1 ) 
 			{	
 				console.log('a free slot was found for this user ' + ctr);
 				this.userid = ctr;
-				this.io.child('users').child('user'+this.userid).set( this.userid );
+				this.io.child( tagChild ).child('user'+this.userid).set( this.userid );
 				this.io.child('data').child('user'+this.userid).remove();
 				this.callbackID( this.userid );
 				return true;
@@ -121,7 +127,7 @@ class FireBaseAPI
 			ctr++;
 		}
 		
-		alert('T  his room is full');
+		alert("I'm sorry, we had to limit the quantity of people using this app, perhaps try again later!");
 		return false;
 	}
 	
@@ -129,7 +135,7 @@ class FireBaseAPI
 	public unregisterUser():void
 	{
 		this.io.child('data').child('user'+this.userid).remove();
-		this.io.child('users').child('user'+this.userid).set( -1 );
+		this.io.child( tagChild).child('user'+this.userid).set( -1 );
 	}
 	
 }

@@ -843,7 +843,7 @@ var FireBaseAPI = (function () {
             ctr++;
         }
 
-        alert('T  his room is full');
+        alert("I'm sorry, we had to limit the quantity of people using this app, perhaps try again later!");
         return false;
     };
 
