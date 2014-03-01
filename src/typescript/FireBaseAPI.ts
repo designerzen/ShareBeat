@@ -15,11 +15,11 @@ class FireBaseAPI
 	private callback:(user:number, step:number, key:number)=>any;
 	private callbackID:(user:number)=>any;
 	
-	private roomName:String = "";
+	private roomName:string = "";
 	
-	private tagChild:String = "users";
-	private tagData:String = "data";
-	private tagUser:String = "";
+	private tagChild:string = "users";
+	private tagData:string = "data";
+	private tagUser:string = "";
 	
 	constructor( onNoteCallback:(user:number, step:number, key:number)=>any, onUserID:(user:number)=>any )
 	{
@@ -30,7 +30,7 @@ class FireBaseAPI
 	public connect():void
 	{
 		this.io = new Firebase('https://sharebeat.firebaseio.com/');
-		this.usersRef = this.io.child(tagChild);
+		this.usersRef = this.io.child( this.tagChild);
 		this.dataRef = this.io.child('data');
 		
 		console.log("Frebase API connectin..."+this.io);
@@ -51,10 +51,10 @@ class FireBaseAPI
 	
 	private onChildAdded( s ):boolean
 	{
-		var n:String  = <String>s.name();
+		var n:string  = <string>s.name();
 		var v:IFirebaseDataSnapshot = s.val();
 		
-		if ((this.firstRun == true) && (n == tagChild) )
+		if ((this.firstRun == true) && (n == this.tagChild) )
 		{
 			//console.log('name = ' + n);
 			//console.log('value = ' + print(val) );
@@ -80,7 +80,7 @@ class FireBaseAPI
 	private onAudioData( snapShot:IFirebaseDataSnapshot ):void
 	{
 		var n = snapShot.name() ;
-		var v:IFirebaseDataSnapshot = snapShot.val() ;
+		var v:any = snapShot.val() ;
 		
 		
 		// ROOM DATA EMPTY!
@@ -119,8 +119,9 @@ class FireBaseAPI
 			{	
 				console.log('a free slot was found for this user ' + ctr);
 				this.userid = ctr;
-				this.io.child( tagChild ).child('user'+this.userid).set( this.userid );
-				this.io.child('data').child('user'+this.userid).remove();
+				var tag:Firebase = this.io.child( this.tagChild );
+				tag.child('user'+this.userid).set( this.userid );
+				tag.child('data').child('user'+this.userid).remove();
 				this.callbackID( this.userid );
 				return true;
 			}
@@ -135,7 +136,7 @@ class FireBaseAPI
 	public unregisterUser():void
 	{
 		this.io.child('data').child('user'+this.userid).remove();
-		this.io.child( tagChild).child('user'+this.userid).set( -1 );
+		this.io.child( this.tagChild).child('user'+this.userid).set( -1 );
 	}
 	
 }

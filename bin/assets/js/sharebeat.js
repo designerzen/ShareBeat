@@ -124,16 +124,16 @@ var audiobus;
                 this.noise.connect(this.gain);
             }
             // trigger!
-            Snare.prototype.start = function (l, offsetA, offsetB, offsetC) {
+            Snare.prototype.start = function (l, attack, offsetB, offsetC) {
                 if (typeof l === "undefined") { l = 2050; }
-                if (typeof offsetA === "undefined") { offsetA = 0.025; }
+                if (typeof attack === "undefined") { attack = 0.025; }
                 if (typeof offsetB === "undefined") { offsetB = 0.050; }
                 if (typeof offsetC === "undefined") { offsetC = 0.3; }
                 var t = this.context.currentTime;
 
                 this.gain.gain.cancelScheduledValues(t);
                 this.gain.gain.setValueAtTime(1, t);
-                this.gain.gain.linearRampToValueAtTime(1, t + offsetA);
+                this.gain.gain.linearRampToValueAtTime(1, t + attack);
                 this.gain.gain.exponentialRampToValueAtTime(0.2, t + offsetB);
                 this.gain.gain.linearRampToValueAtTime(0.0, t + offsetC);
 
@@ -744,15 +744,20 @@ var FireBaseAPI = (function () {
     function FireBaseAPI(onNoteCallback, onUserID) {
         this.firstRun = true;
         this.max = 4;
+        // -1 means an EMPTY user, in the db we Check a ROOM to see
+        // if there are any spaces
         this.userid = -1;
+        this.roomName = "";
+        this.tagChild = "users";
+        this.tagData = "data";
+        this.tagUser = "";
         this.callback = onNoteCallback;
-
         this.callbackID = onUserID;
     }
     FireBaseAPI.prototype.connect = function () {
         var _this = this;
         this.io = new Firebase('https://sharebeat.firebaseio.com/');
-        this.usersRef = this.io.child('users');
+        this.usersRef = this.io.child(this.tagChild);
         this.dataRef = this.io.child('data');
 
         console.log("Frebase API connectin..." + this.io);
@@ -761,7 +766,6 @@ var FireBaseAPI = (function () {
         this.io.on('child_added', function (s) {
             return _this.onChildAdded(s);
         });
-
         this.dataRef.on('value', function (s) {
             return _this.onAudioData(s);
         });
@@ -777,7 +781,7 @@ var FireBaseAPI = (function () {
         var n = s.name();
         var v = s.val();
 
-        if ((this.firstRun == true) && (n == 'users')) {
+        if ((this.firstRun == true) && (n == this.tagChild)) {
             //console.log('name = ' + n);
             //console.log('value = ' + print(val) );
             //console.table(v)
@@ -788,7 +792,7 @@ var FireBaseAPI = (function () {
         }
     };
 
-    FireBaseAPI.prototype.onChildChanged = function (s) {
+    FireBaseAPI.prototype.onChildChanged = function (snapShot) {
         // var n = s.name();
         // var v = s.val();
         // v == -1 ?
@@ -828,15 +832,15 @@ var FireBaseAPI = (function () {
     };
 
     // register user in db and assign unique userid
-    // WTF IS V????
-    FireBaseAPI.prototype.registerUser = function (v) {
+    FireBaseAPI.prototype.registerUser = function (snapShot) {
         var ctr = 0;
-        for (var x in v) {
-            if (v[x] == -1) {
+        for (var x in snapShot) {
+            if (snapShot[x] == -1) {
                 console.log('a free slot was found for this user ' + ctr);
                 this.userid = ctr;
-                this.io.child('users').child('user' + this.userid).set(this.userid);
-                this.io.child('data').child('user' + this.userid).remove();
+                var tag = this.io.child(this.tagChild);
+                tag.child('user' + this.userid).set(this.userid);
+                tag.child('data').child('user' + this.userid).remove();
                 this.callbackID(this.userid);
                 return true;
             }
@@ -850,7 +854,7 @@ var FireBaseAPI = (function () {
     // remove user presence and data from db
     FireBaseAPI.prototype.unregisterUser = function () {
         this.io.child('data').child('user' + this.userid).remove();
-        this.io.child('users').child('user' + this.userid).set(-1);
+        this.io.child(this.tagChild).child('user' + this.userid).set(-1);
     };
     return FireBaseAPI;
 })();
