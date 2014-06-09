@@ -39,7 +39,9 @@ module audiobus.instruments
 			this.gain.gain.exponentialRampToValueAtTime(0.2, t + offsetB);
 			this.gain.gain.linearRampToValueAtTime(0.0, t + offsetC);
 				
-			this.noise.start(0);
+			if ( !this.hasInitialised )this.noise.start(0);
+			
+			super.start();
 		}
 		
 	}

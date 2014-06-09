@@ -47,7 +47,8 @@ class Main
 		// Attach key event
 		document.onkeydown = (event) => {
             this.keyListener(event);
-        }
+        };
+		
 	}
 	
 	private keyListener(e) 
@@ -87,6 +88,7 @@ $(document).ready(function(){
 	var $body = $('body'),
 		$matrix = $('#matrix'),
 		$content = $('#content'),
+		$window = $(window),
 		buttonHtml = 'article.button';
 		
 	var timeout;	
@@ -103,14 +105,13 @@ $(document).ready(function(){
 	var octave = -10;
 	var bpm = 200;
 	
-	var db = new FireBaseAPI( onForeignBeat, onUserID );
 	var drums  = new audiobus.DrumMachine();
-	
 	var sine = new audiobus.instruments.Sine( drums.dsp, drums.gain );
 	var sineB = new audiobus.instruments.Sine( drums.dsp, drums.gain );
 	var saw = new audiobus.instruments.Saw( drums.dsp, drums.gain );
 	
 	var netronome = new audiobus.Netronome( onEveryBeat, onProgress, this );
+	var db = new FireBaseAPI( onForeignBeat, onUserID );
 	
 	//var instruments:audiobus.instruments.Instrument[] = [ sine, kick, hihat, cowbell ];
 	
@@ -218,12 +219,13 @@ $(document).ready(function(){
 		//var instrument:audiobus.instruments.Instrument = instruments[ user ];
 		//var instrument = <audiobus.instruments.Instrument>instruments[ user ];
 		var frequency;
-		
+		var note = key + octave;
 		switch( user )
 		{
 			// Simple sine wave
 			case 0:
-				frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );	
+				frequency = note / 12;
+				frequency = 440 * frequency * frequency;	
 				sine.start( frequency );
 				break;
 				
@@ -234,22 +236,21 @@ $(document).ready(function(){
 			
 			// Sine Bass
 			case 2:
-				frequency = 440 * Math.pow(2, ( (key + octave - 12) / 12 ) );	
+				frequency = (note - 12) / 12;
+				frequency = 440 * frequency * frequency;	
 				sineB.start( frequency );
 				break;
 				
 			// Saw tooth
 			case 3:
-				frequency = 440 * Math.pow(2, ( (key + octave) / 12 ) );	
+				frequency = note / 12;
+				frequency = 440 * frequency * frequency;	
 				saw.start( frequency );
 				break;
-			
-			
-			
 		}
 		//console.log( frequency + "Hz" );
-		
 	}
+	
 	function stopInstrument( user )
 	{
 		switch( user )
@@ -285,8 +286,7 @@ $(document).ready(function(){
 			// fetch the user name
 			var userName = userNames[u];
 			var data = userName + index;
-			
-			
+
 			var $element =  $matrix.data( data );
 			if ($element)
 			{
@@ -346,13 +346,13 @@ $(document).ready(function(){
 		else onBeatRequest( $this );
 	}
 	
-	// Beat has been pressed
+	// Inactive Beat has been pressed
 	function onBeatRequest($element)
 	{
 		selectBeat( $element, db.userid );
 	}
 	
-	// Beat has been pressed
+	// Active Beat has been pressed
 	function onBeatDeselect($element)
 	{
 		deselectBeat( $element, db.userid );
@@ -371,13 +371,8 @@ $(document).ready(function(){
 	
 	function onBeatRolledOver(event)
 	{
-		//console.log("Beat over");
-		
 		if (mouseDown) onBeatSelected( this );
 		else $(this).addClass("over");
-		//console.log("Beat selected");
-		
-		
 	}
 	
 	function onBeatRolledOut()
@@ -391,12 +386,7 @@ $(document).ready(function(){
 	// Foreign events from web service!
 	function onForeignBeat( user:number, step:number, key:number )
 	{
-		//alert("on foreign beat");
 		// figure out where the beat is on the system...
-		
-		//key = notes - key;
-		// this is WRONG!
-		//var index:number = (step*notes) / key;
 		var i:number = step+(notes*key);
 		var $element:JQuery = $( $buttons[ i ] );
 		
@@ -408,49 +398,24 @@ $(document).ready(function(){
 	function onMouseDown(event)
 	{
 		mouseDown = true;
-		
 	}
+	
 	function onMouseUp(event)
 	{
 		mouseDown = false;
 	}
 	
-	// Screen resize
-	function onMatrixResize(event)
-	{
-		if (timeout) clearTimeout(timeout);
-		timeout = setTimeout( onActualResize, 400 ); 
-	}
-	
-	// Screen resize
-	function onActualResize(event)
-	{
-		// throw an alert when height of matrix exceeds screeen height!
-		var screenWidth = $(window).width();
-		var screenHeight = $(window).height();
-		
-		if ( screenWidth < screenHeight )
-		{
-			// no scrollbar
-			//console.log( "safe height for matrix "+screenHeight+" with "+$matrix.height() );
-			$content.width( "100%" );
-			$content.css( "margin-left", 0 );
-		}else{
-			// scroll bar so readjust size
-			//console.log( "matrix exceeding height "+screenHeight+" with "+$matrix.height() );
-			$content.width( screenHeight + "px" );
-			var leftOver = $(window).width() - screenHeight;
-			$content.css( "margin-left", leftOver * 0.5 );
-		}
-		
-		
-	}
 	
 	function onUserID( id:number )
 	{
 		id = id >> 0;
 		switch( id )
 		{
+			// room full! reload in new room?
+			case -1:
+				onRoomFullError();
+				return;
+				
 			// Simple sine wave
 			case 0:
 				$body.addClass('sine');
@@ -471,6 +436,7 @@ $(document).ready(function(){
 				$body.addClass('saw');
 				break;
 		}
+		
 		isLoaded = true;
 		$body.removeClass("loading");
 		netronome.start( bpm );
@@ -478,13 +444,51 @@ $(document).ready(function(){
 		var progress:number = netronome.percentage * steps;
 		index = progress >> 0;
 		
-		//alert( "INDEX : " + index );
-		//index = 0;
-		
 		$matrix.show();
 	}
+	function onRoomFullError()
+	{
+		var copy = "I'm sorry, we had to limit the quantity of people using this app, perhaps try again later!";
+		alert(copy);
+		$body.removeClass("loading").addClass("error");
+		$matrix.html( copy );
+	}
 	
-	// BEGIN
+	// Screen resize
+	function onMatrixResize(event)
+	{
+		if (timeout) clearTimeout(timeout);
+		timeout = setTimeout( onActualResize, 400 ); 
+	}
+	
+	// Screen resize
+	function onActualResize(event)
+	{
+		var screenWidth = $window.width();
+		var screenHeight = $window.height();
+		
+		if ( screenWidth < screenHeight )
+		{
+			// no scrollbar
+			//console.log( "safe height for matrix "+screenHeight+" with "+$matrix.height() );
+			$content.width( "100%" );
+			$content.css( "margin-left", 0 );
+		}else{
+			// scroll bar so readjust size
+			//console.log( "matrix exceeding height "+screenHeight+" with "+$matrix.height() );
+			$content.width( screenHeight + "px" );
+			var leftOver = $(window).width() - screenHeight;
+			$content.css( "margin-left", leftOver * 0.5 );
+		}
+	}
+	function onUnloaded()
+	{
+		db.disconnect();
+	}
+	
+	// BEGIN ----------------------------------------------------------------------
+	
+	$body.addClass("loading");
 	
 	// loop through here and create our 16 x 16 grid
 	var boxes = "";
@@ -505,7 +509,8 @@ $(document).ready(function(){
 	
 	// first check for mouse down
 	$matrix.mousedown( onMouseDown );
-	$matrix.mouseup( onMouseUp );
+	//$matrix.mouseup( onMouseUp );
+	$window.mouseup( onMouseUp );
 	
 	// now convert each of these boxes into a specific ID
 	$buttons.mouseover( onBeatRolledOver );
@@ -513,14 +518,12 @@ $(document).ready(function(){
 	$buttons.click( onBeatPressed );
 	
 	// now before we reveal the $matrix...
-	// let's hide all oour buttons then stagger them in with GSAP
+	// let's hide all our buttons then stagger them in with GSAP
 	//TweenMax.staggerToFrom( $buttons, 1, { alpha:0 }, { alpha:1 }, 1 )//.onComplete( function(){ $matrix.show(); } );
 	//TweenMax.staggerTo( $buttons, 1, {alpha:1 }, 1 , $matrix.show )//.onComplete( function(){ $matrix.show(); } );
 	
-	
-	$( window ).resize( onMatrixResize );
 	/*
-	$( window ).keydown(
+	$window.keydown(
 		function( event ) {
 			
 			if ( event.which == 13 ) {
@@ -534,19 +537,12 @@ $(document).ready(function(){
 		}
 	);
 	*/
-	function onUnloaded()
-	{
-		db.disconnect();
-	}
 	
-	
-	$body.addClass("loading");
 	// when user closes the window
 	window.onunload = onUnloaded;
-	
+	$window.resize( onMatrixResize );
 	onActualResize( null );
 	
 	// Kick things off!
-	db.connect();
-		
+	db.connect();	
 });

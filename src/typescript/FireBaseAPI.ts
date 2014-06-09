@@ -127,8 +127,7 @@ class FireBaseAPI
 			}
 			ctr++;
 		}
-		
-		alert("I'm sorry, we had to limit the quantity of people using this app, perhaps try again later!");
+		this.callbackID( -1 );
 		return false;
 	}
 	

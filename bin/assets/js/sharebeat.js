@@ -18,6 +18,11 @@ var audiobus;
             */
             // create
             function Instrument(audioContext, outputTo) {
+                this.isPlaying = false;
+                this.hasInitialised = false;
+                this.durationFadeIn = 0.15;
+                this.durationFadeOut = 0.15;
+                this.SILENCE = Number.MIN_VALUE + Number.MIN_VALUE;
                 this.context = audioContext;
                 this.gain = audioContext.createGain();
                 this.gain.connect(outputTo);
@@ -27,10 +32,27 @@ var audiobus;
                 for (var _i = 0; _i < (arguments.length - 0); _i++) {
                     args[_i] = arguments[_i + 0];
                 }
+                var t = this.context.currentTime;
+
+                this.isPlaying = true;
+                this.hasInitialised = true;
+                console.log('start ' + this.isPlaying);
             };
 
             Instrument.prototype.stop = function () {
-                this.gain.gain.value = 0;
+                if (!this.hasInitialised)
+                    return;
+
+                //this.gain.gain.value = 0;
+                //
+                // An exception will be thrown if this value is less than or equal to 0,
+                // or if the value at the time of the previous event is less than or equal to 0.
+                //this.gain.gain.setValueAtTime(0.01, t + durationFadeOut);
+                this.fadeOut(this.durationFadeOut);
+                console.log('stop vol:', this.gain);
+
+                //if (this.gain.gain.value > 0 ) console.error('could not stop'+this);
+                this.isPlaying = false;
             };
 
             Instrument.prototype.fadeIn = function (time) {
@@ -43,8 +65,10 @@ var audiobus;
             };
             Instrument.prototype.fadeOut = function (time) {
                 if (typeof time === "undefined") { time = 0.1; }
+                var t = this.context.currentTime;
                 console.log("fading out in " + time);
-                TweenLite.to(this.gain, time, { gain: 0 });
+                this.gain.gain.cancelScheduledValues(t);
+                this.gain.gain.exponentialRampToValueAtTime(this.SILENCE, t + time);
             };
             return Instrument;
         })();
@@ -91,7 +115,10 @@ var audiobus;
                 this.osc1.frequency.setValueAtTime(l, t);
                 this.osc1.frequency.exponentialRampToValueAtTime(80, t + offsetA);
 
-                this.osc1.start(0);
+                if (!this.hasInitialised)
+                    this.osc1.start(0);
+
+                _super.prototype.start.call(this);
             };
             return BassDrum;
         })(instruments.Instrument);
@@ -137,7 +164,10 @@ var audiobus;
                 this.gain.gain.exponentialRampToValueAtTime(0.2, t + offsetB);
                 this.gain.gain.linearRampToValueAtTime(0.0, t + offsetC);
 
-                this.noise.start(0);
+                if (!this.hasInitialised)
+                    this.noise.start(0);
+
+                _super.prototype.start.call(this);
             };
             return Snare;
         })(instruments.Instrument);
@@ -218,13 +248,16 @@ var audiobus;
                 this.gain.gain.exponentialRampToValueAtTime(0.1, t + 0.050);
                 this.gain.gain.linearRampToValueAtTime(0.0, t + 0.300);
 
-                //noise.start(0);
-                this.osc5.start(0);
-                this.osc6.start(0);
-                this.osc7.start(0);
-                this.osc8.start(0);
-                this.osc9.start(0);
-                this.oscA.start(0);
+                if (!this.hasInitialised) {
+                    this.osc5.start(0);
+                    this.osc6.start(0);
+                    this.osc7.start(0);
+                    this.osc8.start(0);
+                    this.osc9.start(0);
+                    this.oscA.start(0);
+                }
+
+                _super.prototype.start.call(this);
             };
             return HiHat;
         })(instruments.Instrument);
@@ -261,7 +294,9 @@ var audiobus;
                 this.gain.gain.exponentialRampToValueAtTime(0.5, t + 0.010);
                 this.gain.gain.linearRampToValueAtTime(0.0, t + offsetA);
 
-                this.osc2.start(0);
+                if (!this.hasInitialised)
+                    this.osc2.start(0);
+                _super.prototype.start.call(this);
             };
             return Conga;
         })(instruments.Instrument);
@@ -304,9 +339,12 @@ var audiobus;
                 this.gain.gain.linearRampToValueAtTime(1, t + offsetA);
                 this.gain.gain.exponentialRampToValueAtTime(0.2, t + offsetB);
                 this.gain.gain.linearRampToValueAtTime(0.0, t + offsetC);
+                if (!this.hasInitialised) {
+                    this.oscB.start(0);
+                    this.oscC.start(0);
+                }
 
-                this.oscB.start(0);
-                this.oscC.start(0);
+                _super.prototype.start.call(this);
             };
             return CowBell;
         })(instruments.Instrument);
@@ -462,12 +500,15 @@ var audiobus;
             // create
             function Sine(audioContext, outputTo) {
                 _super.call(this, audioContext, outputTo);
-
+                this.create();
+            }
+            Sine.prototype.create = function () {
                 // Synthesize!
-                this.osc = audioContext.createOscillator();
+                this.osc = this.context.createOscillator();
                 this.osc.type = 0;
                 this.osc.connect(this.gain);
-            }
+            };
+
             Sine.prototype.start = function (frequency) {
                 //console.log("Sine commencing at f:"+frequency );
                 var t = this.context.currentTime;
@@ -476,13 +517,38 @@ var audiobus;
 
                 //this.osc.frequency.setValueAtTime(1200, t);
                 //this.osc.frequency.linearRampToValueAtTime(800, t + 0.005);
-                this.gain.gain.value = .5;
-
                 //this.gain.gain.cancelScheduledValues( t );
-                //this.gain.gain.setValueAtTime(0.5, t);
-                //this.gain.gain.exponentialRampToValueAtTime(0.5, 	t + 0.010);
-                //this.gain.gain.linearRampToValueAtTime(0.0,  t + 0.160);
-                this.osc.start(0);
+                this.gain.gain.cancelScheduledValues(t);
+
+                if (this.isPlaying) {
+                    // this note is already playing so don't tweak it.
+                    this.gain.gain.value = .5;
+                } else {
+                    // freshly playing so ADSR it
+                    //this.gain.gain.value = .5;
+                    //this.gain.gain.setValueAtTime(0.0001, t);
+                    // An exception will be thrown if this value is less than or equal to 0,
+                    // or if the value at the time of the previous event is less than or equal to 0.
+                    //this.gain.gain.exponentialRampToValueAtTime( 0.5, t + 0.001 );
+                    //this.gain.gain.value = .5;
+                    //this.gain.gain.setValueAtTime(0.0000000000001, t);
+                    this.gain.gain.exponentialRampToValueAtTime(0.5, t + this.durationFadeIn);
+
+                    console.log('trying to start ' + this.isPlaying + ' state:' + this.osc.playbackState);
+                }
+
+                if (!this.hasInitialised)
+                    this.osc.start(t);
+                _super.prototype.start.call(this);
+            };
+
+            Sine.prototype.stop = function () {
+                if (!this.hasInitialised)
+                    return;
+                console.log('stop playing? ' + this.isPlaying + ' state:' + this.osc.playbackState);
+
+                //this.osc.stop( 0 );
+                _super.prototype.stop.call(this);
             };
             return Sine;
         })(instruments.Instrument);
@@ -500,12 +566,16 @@ var audiobus;
             // create
             function Saw(audioContext, outputTo) {
                 _super.call(this, audioContext, outputTo);
-
+                this.create();
+            }
+            // Synthesize!
+            Saw.prototype.create = function () {
                 // Synthesize!
-                this.osc = audioContext.createOscillator();
+                this.osc = this.context.createOscillator();
                 this.osc.type = 1;
                 this.osc.connect(this.gain);
-            }
+            };
+
             Saw.prototype.start = function (frequency) {
                 console.log("Sine commencing at f:" + frequency);
                 var t = this.context.currentTime;
@@ -516,11 +586,9 @@ var audiobus;
                 //this.osc.frequency.linearRampToValueAtTime(800, t + 0.005);
                 this.gain.gain.value = .5;
 
-                //this.gain.gain.cancelScheduledValues( t );
-                //this.gain.gain.setValueAtTime(0.5, t);
-                //this.gain.gain.exponentialRampToValueAtTime(0.5, 	t + 0.010);
-                //this.gain.gain.linearRampToValueAtTime(0.0,  t + 0.160);
-                this.osc.start(0);
+                if (!this.hasInitialised)
+                    this.osc.start(t);
+                _super.prototype.start.call(this);
             };
             return Saw;
         })(instruments.Instrument);
@@ -533,13 +601,13 @@ var audiobus;
     ///<reference path="../definitions/waa.d.ts" />
     (function (inputs) {
         var Microphone = (function () {
-            // this will need to be removed once getUserMedia is more accepted
             // create
             function Microphone(audioContext, outputTo) {
                 this.context = audioContext;
                 this.gain = audioContext.createGain();
                 this.gain.connect(outputTo);
             }
+            // this will need to be removed once getUserMedia is more accepted
             Microphone.prototype.getUserMedia = function (options, success, error) {
                 var n = navigator;
                 n.getUserMedia = n.getUserMedia || n.webkitGetUserMedia || n.mozGetUserMedia || n.msGetUserMedia;
@@ -846,8 +914,7 @@ var FireBaseAPI = (function () {
             }
             ctr++;
         }
-
-        alert("I'm sorry, we had to limit the quantity of people using this app, perhaps try again later!");
+        this.callbackID(-1);
         return false;
     };
 
@@ -925,7 +992,7 @@ var Main = (function () {
 
 // jQuery Commence!
 $(document).ready(function () {
-    var $body = $('body'), $matrix = $('#matrix'), $content = $('#content'), buttonHtml = 'article.button';
+    var $body = $('body'), $matrix = $('#matrix'), $content = $('#content'), $window = $(window), buttonHtml = 'article.button';
 
     var timeout;
     var steps = 16;
@@ -941,14 +1008,13 @@ $(document).ready(function () {
     var octave = -10;
     var bpm = 200;
 
-    var db = new FireBaseAPI(onForeignBeat, onUserID);
     var drums = new audiobus.DrumMachine();
-
     var sine = new audiobus.instruments.Sine(drums.dsp, drums.gain);
     var sineB = new audiobus.instruments.Sine(drums.dsp, drums.gain);
     var saw = new audiobus.instruments.Saw(drums.dsp, drums.gain);
 
     var netronome = new audiobus.Netronome(onEveryBeat, onProgress, this);
+    var db = new FireBaseAPI(onForeignBeat, onUserID);
 
     //var instruments:audiobus.instruments.Instrument[] = [ sine, kick, hihat, cowbell ];
     // fetch all foreign beats associated with
@@ -1046,10 +1112,11 @@ $(document).ready(function () {
         //var instrument:audiobus.instruments.Instrument = instruments[ user ];
         //var instrument = <audiobus.instruments.Instrument>instruments[ user ];
         var frequency;
-
+        var note = key + octave;
         switch (user) {
             case 0:
-                frequency = 440 * Math.pow(2, ((key + octave) / 12));
+                frequency = note / 12;
+                frequency = 440 * frequency * frequency;
                 sine.start(frequency);
                 break;
 
@@ -1058,17 +1125,20 @@ $(document).ready(function () {
                 break;
 
             case 2:
-                frequency = 440 * Math.pow(2, ((key + octave - 12) / 12));
+                frequency = (note - 12) / 12;
+                frequency = 440 * frequency * frequency;
                 sineB.start(frequency);
                 break;
 
             case 3:
-                frequency = 440 * Math.pow(2, ((key + octave) / 12));
+                frequency = note / 12;
+                frequency = 440 * frequency * frequency;
                 saw.start(frequency);
                 break;
         }
         //console.log( frequency + "Hz" );
     }
+
     function stopInstrument(user) {
         switch (user) {
             case 0:
@@ -1142,12 +1212,12 @@ else
             onBeatRequest($this);
     }
 
-    // Beat has been pressed
+    // Inactive Beat has been pressed
     function onBeatRequest($element) {
         selectBeat($element, db.userid);
     }
 
-    // Beat has been pressed
+    // Active Beat has been pressed
     function onBeatDeselect($element) {
         deselectBeat($element, db.userid);
     }
@@ -1168,7 +1238,6 @@ else
             onBeatSelected(this);
 else
             $(this).addClass("over");
-        //console.log("Beat selected");
     }
 
     function onBeatRolledOut() {
@@ -1179,11 +1248,7 @@ else
 
     // Foreign events from web service!
     function onForeignBeat(user, step, key) {
-        //alert("on foreign beat");
         // figure out where the beat is on the system...
-        //key = notes - key;
-        // this is WRONG!
-        //var index:number = (step*notes) / key;
         var i = step + (notes * key);
         var $element = $($buttons[i]);
 
@@ -1194,40 +1259,18 @@ else
     function onMouseDown(event) {
         mouseDown = true;
     }
+
     function onMouseUp(event) {
         mouseDown = false;
-    }
-
-    // Screen resize
-    function onMatrixResize(event) {
-        if (timeout)
-            clearTimeout(timeout);
-        timeout = setTimeout(onActualResize, 400);
-    }
-
-    // Screen resize
-    function onActualResize(event) {
-        // throw an alert when height of matrix exceeds screeen height!
-        var screenWidth = $(window).width();
-        var screenHeight = $(window).height();
-
-        if (screenWidth < screenHeight) {
-            // no scrollbar
-            //console.log( "safe height for matrix "+screenHeight+" with "+$matrix.height() );
-            $content.width("100%");
-            $content.css("margin-left", 0);
-        } else {
-            // scroll bar so readjust size
-            //console.log( "matrix exceeding height "+screenHeight+" with "+$matrix.height() );
-            $content.width(screenHeight + "px");
-            var leftOver = $(window).width() - screenHeight;
-            $content.css("margin-left", leftOver * 0.5);
-        }
     }
 
     function onUserID(id) {
         id = id >> 0;
         switch (id) {
+            case -1:
+                onRoomFullError();
+                return;
+
             case 0:
                 $body.addClass('sine');
                 break;
@@ -1244,6 +1287,7 @@ else
                 $body.addClass('saw');
                 break;
         }
+
         isLoaded = true;
         $body.removeClass("loading");
         netronome.start(bpm);
@@ -1251,12 +1295,47 @@ else
         var progress = netronome.percentage * steps;
         index = progress >> 0;
 
-        //alert( "INDEX : " + index );
-        //index = 0;
         $matrix.show();
     }
+    function onRoomFullError() {
+        var copy = "I'm sorry, we had to limit the quantity of people using this app, perhaps try again later!";
+        alert(copy);
+        $body.removeClass("loading").addClass("error");
+        $matrix.html(copy);
+    }
 
-    // BEGIN
+    // Screen resize
+    function onMatrixResize(event) {
+        if (timeout)
+            clearTimeout(timeout);
+        timeout = setTimeout(onActualResize, 400);
+    }
+
+    // Screen resize
+    function onActualResize(event) {
+        var screenWidth = $window.width();
+        var screenHeight = $window.height();
+
+        if (screenWidth < screenHeight) {
+            // no scrollbar
+            //console.log( "safe height for matrix "+screenHeight+" with "+$matrix.height() );
+            $content.width("100%");
+            $content.css("margin-left", 0);
+        } else {
+            // scroll bar so readjust size
+            //console.log( "matrix exceeding height "+screenHeight+" with "+$matrix.height() );
+            $content.width(screenHeight + "px");
+            var leftOver = $(window).width() - screenHeight;
+            $content.css("margin-left", leftOver * 0.5);
+        }
+    }
+    function onUnloaded() {
+        db.disconnect();
+    }
+
+    // BEGIN ----------------------------------------------------------------------
+    $body.addClass("loading");
+
     // loop through here and create our 16 x 16 grid
     var boxes = "";
     for (var g = 0; g < quantity; ++g) {
@@ -1275,7 +1354,9 @@ else
 
     // first check for mouse down
     $matrix.mousedown(onMouseDown);
-    $matrix.mouseup(onMouseUp);
+
+    //$matrix.mouseup( onMouseUp );
+    $window.mouseup(onMouseUp);
 
     // now convert each of these boxes into a specific ID
     $buttons.mouseover(onBeatRolledOver);
@@ -1283,13 +1364,11 @@ else
     $buttons.click(onBeatPressed);
 
     // now before we reveal the $matrix...
-    // let's hide all oour buttons then stagger them in with GSAP
+    // let's hide all our buttons then stagger them in with GSAP
     //TweenMax.staggerToFrom( $buttons, 1, { alpha:0 }, { alpha:1 }, 1 )//.onComplete( function(){ $matrix.show(); } );
     //TweenMax.staggerTo( $buttons, 1, {alpha:1 }, 1 , $matrix.show )//.onComplete( function(){ $matrix.show(); } );
-    $(window).resize(onMatrixResize);
-
     /*
-    $( window ).keydown(
+    $window.keydown(
     function( event ) {
     
     if ( event.which == 13 ) {
@@ -1303,15 +1382,9 @@ else
     }
     );
     */
-    function onUnloaded() {
-        db.disconnect();
-    }
-
-    $body.addClass("loading");
-
     // when user closes the window
     window.onunload = onUnloaded;
-
+    $window.resize(onMatrixResize);
     onActualResize(null);
 
     // Kick things off!
