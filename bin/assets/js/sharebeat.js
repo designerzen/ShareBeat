@@ -20,9 +20,9 @@ var audiobus;
             function Instrument(audioContext, outputTo) {
                 this.isPlaying = false;
                 this.hasInitialised = false;
-                this.durationFadeIn = 0.15;
-                this.durationFadeOut = 0.15;
-                this.SILENCE = Number.MIN_VALUE + Number.MIN_VALUE;
+                this.durationFadeIn = 0.05;
+                this.durationFadeOut = 3;
+                this.SILENCE = 0.00000001;
                 this.context = audioContext;
                 this.gain = audioContext.createGain();
                 this.gain.connect(outputTo);
@@ -40,14 +40,14 @@ var audiobus;
             };
 
             Instrument.prototype.stop = function () {
-                if (!this.hasInitialised)
+                if (!this.hasInitialised || !this.isPlaying)
                     return;
 
                 //this.gain.gain.value = 0;
                 //
                 // An exception will be thrown if this value is less than or equal to 0,
                 // or if the value at the time of the previous event is less than or equal to 0.
-                //this.gain.gain.setValueAtTime(0.01, t + durationFadeOut);
+                //
                 this.fadeOut(this.durationFadeOut);
                 console.log('stop vol:', this.gain);
 
@@ -57,7 +57,11 @@ var audiobus;
 
             Instrument.prototype.fadeIn = function (time) {
                 if (typeof time === "undefined") { time = 0.1; }
-                TweenLite.to(this.gain, time, { gain: 1, onComplete: this.onFaded });
+                var t = this.context.currentTime;
+                console.log("fading out in " + time);
+                this.gain.gain.cancelScheduledValues(t);
+                this.gain.gain.exponentialRampToValueAtTime(0.5, t + time);
+                this.gain.gain.setValueAtTime(0.5, t + time);
             };
 
             Instrument.prototype.onFaded = function () {
@@ -69,6 +73,7 @@ var audiobus;
                 console.log("fading out in " + time);
                 this.gain.gain.cancelScheduledValues(t);
                 this.gain.gain.exponentialRampToValueAtTime(this.SILENCE, t + time);
+                this.gain.gain.setValueAtTime(0, t + time);
             };
             return Instrument;
         })();
@@ -1266,31 +1271,35 @@ else
 
     function onUserID(id) {
         id = id >> 0;
+        var instrumentType = 'unknown';
         switch (id) {
             case -1:
                 onRoomFullError();
                 return;
 
             case 0:
-                $body.addClass('sine');
+                instrumentType = 'sine';
                 break;
 
             case 1:
-                $body.addClass('drums');
+                instrumentType = 'drums';
                 break;
 
             case 2:
-                $body.addClass('bass');
+                instrumentType = 'bass';
                 break;
 
             case 3:
-                $body.addClass('saw');
+                instrumentType = 'saw';
                 break;
         }
 
         isLoaded = true;
-        $body.removeClass("loading");
+        $body.removeClass("loading").addClass(instrumentType);
+
         netronome.start(bpm);
+
+        var footer = $('footer', $body).html(instrumentType);
 
         var progress = netronome.percentage * steps;
         index = progress >> 0;
@@ -1363,10 +1372,6 @@ else
     $buttons.mouseout(onBeatRolledOut);
     $buttons.click(onBeatPressed);
 
-    // now before we reveal the $matrix...
-    // let's hide all our buttons then stagger them in with GSAP
-    //TweenMax.staggerToFrom( $buttons, 1, { alpha:0 }, { alpha:1 }, 1 )//.onComplete( function(){ $matrix.show(); } );
-    //TweenMax.staggerTo( $buttons, 1, {alpha:1 }, 1 , $matrix.show )//.onComplete( function(){ $matrix.show(); } );
     /*
     $window.keydown(
     function( event ) {

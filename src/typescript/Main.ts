@@ -409,6 +409,7 @@ $(document).ready(function(){
 	function onUserID( id:number )
 	{
 		id = id >> 0;
+		var instrumentType = 'unknown';
 		switch( id )
 		{
 			// room full! reload in new room?
@@ -418,28 +419,31 @@ $(document).ready(function(){
 				
 			// Simple sine wave
 			case 0:
-				$body.addClass('sine');
+				instrumentType = 'sine' ;
 				break;
 				
 			// DrumMachine kit
 			case 1:
-				$body.addClass('drums');
+				instrumentType = 'drums' ;
 				break;
 			
 			// Sine Bass
 			case 2:
-				$body.addClass('bass');
+				instrumentType = 'bass';
 				break;
 				
 			// Saw tooth
 			case 3:
-				$body.addClass('saw');
+				instrumentType = 'saw' ;
 				break;
 		}
 		
 		isLoaded = true;
-		$body.removeClass("loading");
+		$body.removeClass("loading").addClass( instrumentType );
+		
 		netronome.start( bpm );
+		
+		var footer = $('footer', $body ).html(instrumentType);
 		
 		var progress:number = netronome.percentage * steps;
 		index = progress >> 0;
@@ -516,11 +520,6 @@ $(document).ready(function(){
 	$buttons.mouseover( onBeatRolledOver );
 	$buttons.mouseout( onBeatRolledOut );
 	$buttons.click( onBeatPressed );
-	
-	// now before we reveal the $matrix...
-	// let's hide all our buttons then stagger them in with GSAP
-	//TweenMax.staggerToFrom( $buttons, 1, { alpha:0 }, { alpha:1 }, 1 )//.onComplete( function(){ $matrix.show(); } );
-	//TweenMax.staggerTo( $buttons, 1, {alpha:1 }, 1 , $matrix.show )//.onComplete( function(){ $matrix.show(); } );
 	
 	/*
 	$window.keydown(

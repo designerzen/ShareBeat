@@ -11,10 +11,10 @@ module audiobus.instruments
 		public isPlaying:boolean = false;
 		public hasInitialised:boolean = false;
 		
-		public durationFadeIn:number = 0.15;
-		public durationFadeOut:number = 0.15;
+		public durationFadeIn:number = 0.05;
+		public durationFadeOut:number = 3;
 		
-		public SILENCE:number = Number.MIN_VALUE + Number.MIN_VALUE;
+		public SILENCE:number = 0.00000001;//Number.MIN_VALUE*100000000000;
 		
 		/*
 		public set volume( vol:number=1 )
@@ -47,13 +47,13 @@ module audiobus.instruments
 		
 		public stop():void
 		{
-			if ( !this.hasInitialised ) return;
+			if ( !this.hasInitialised || !this.isPlaying ) return;
 			
 			//this.gain.gain.value = 0;
 			//
     			// An exception will be thrown if this value is less than or equal to 0,
 				// or if the value at the time of the previous event is less than or equal to 0.
-			//this.gain.gain.setValueAtTime(0.01, t + durationFadeOut);	
+			//
 			this.fadeOut(this.durationFadeOut);
 			console.log( 'stop vol:', this.gain );
 			//if (this.gain.gain.value > 0 ) console.error('could not stop'+this);
@@ -63,7 +63,11 @@ module audiobus.instruments
 		
 		public fadeIn( time:number=0.1 ):void
 		{
-			TweenLite.to(this.gain, time, {gain:1, onComplete:this.onFaded });
+			var t:number = this.context.currentTime;
+			console.log( "fading out in "+time );
+			this.gain.gain.cancelScheduledValues( t );
+			this.gain.gain.exponentialRampToValueAtTime( 0.5, t + time );
+			this.gain.gain.setValueAtTime(0.5, t + time);	
 		}
 		
 		public onFaded(  ):void
@@ -76,7 +80,7 @@ module audiobus.instruments
 			console.log( "fading out in "+time );
 			this.gain.gain.cancelScheduledValues( t );
 			this.gain.gain.exponentialRampToValueAtTime( this.SILENCE, t + time );
-			
+			this.gain.gain.setValueAtTime(0, t + time);	
 		}
 		
 	}

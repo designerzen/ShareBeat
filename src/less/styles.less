@@ -40,7 +40,6 @@
 
 
 .normalize();
-@import url(typography.less);
 
 html{
 	width:100%;
@@ -65,17 +64,71 @@ body{
 	
 }
 
-			// Simple sine wave
-body.sine{	background-color: darken( @userA, 25% ); }
-body.drums{	background-color: darken(@userB, 25% ); }
-body.bass{	background-color: darken(@userC, 25% ); }
-body.saw{	background-color: darken(@userD, 25% ); }
 
-header, footer{
+// Configurable for each instrument type
+.body-action( @colour; @wallpaper; @progress ){
+	
+	@bg:mix( @light,@wallpaper );
+	
+	background-color: @wallpaper; 
+	::-moz-selection{ background-color: @bg}
+	::selection{ background-color:@bg }
+	
+	article{
+		background-color:lighten(@bg,5%);
+		&:nth-child(odd) {
+			background-color:darken(@bg, 5%);
+		}
+		// hover state	
+		.over,
+		&:hover{
+			background-color:mix( @orange, @colour );
+			color:darken( @links , 20% );
+			text-decoration:none;
+		}
+	}
+	
+	article.selected{
+		z-index:999;
+		background-color:@colour;
+		&:hover{
+			background-color:@colour;
+			color:darken( @links , 20% );
+			text-decoration:none;
+		}
+	}
+	
+	.progress{
+		background-color:fadeout(@progress, 50%);
+	}
+}
+
+
+// Simple sine wave
+body.sine{	
+	.body-action( @userA, @green,@orange );
+}
+
+body.drums{	
+	.body-action( @userB, @orange, @green);
+}
+
+body.bass{	
+	.body-action( @userC, @green,@green );
+}
+body.saw{	
+	.body-action( @userD, @brown ,@green);
+}
+
+
+body.error{	
+	background-color: darken(@error, 25% ); 
+}
+
+header{
 	.visuallyhidden();
 }
 
-.selection( @brown,@brown );
 
 // square of squares
 @box-width : 100 / @steps;
@@ -90,8 +143,8 @@ header, footer{
 
 #matrix{
 	max-width: 1600px;
-	margin: 40px;
-	padding: 0;
+	margin: 20px 40px;
+	padding: 10px 0;
 	overflow: hidden;
 	position:relative;
 	
@@ -103,14 +156,22 @@ header, footer{
 		top:0;
 		left:0;
 		bottom:0;
-		background-color:fadeout(@green, 50%);
 		height:100%;
 		display:block;
+		pointer-events : none;
 		.transition (all 0.2s);
 		//padding: 40px;
 	}
 }
 
+footer{
+	position:absolute;
+	bottom:0;
+	text-align:center;
+	display:block;
+	text-transform:uppercase;
+	width:100%;
+}
 
 body.loading{
 	background-color:@grey;
@@ -128,7 +189,6 @@ article{
 	border-right:1px @brown thin;
 	
 	@size : @box-width + 0%;
-	background-color:@grey;
 	text-decoration:none;
 	.transition (all 0.2s);
 	
@@ -148,42 +208,12 @@ article{
 	overflow: hidden;
 	display:block;
 	
-	.over,
-	&:hover{
-		background-color:@orange;
-		color:darken( @links , 20% );
-		text-decoration:none;
-	}
 	
 	img { 
 		max-width: 100%; 
 	}
-	
-	&:nth-child(odd) {
-		background-color:lighten(@grey, 3%);
-	}
 }
 
-body.drums{
-	
-	// nth child rows!
-	article{
-		
-		&:nth-child(odd) {
-			background-color:lighten(@grey, 3%);
-		}
-	}
-	
-}
-article.selected{
-	z-index:999;
-	background-color:@green;
-	&:hover{
-		background-color:@blue;
-		color:darken( @links , 20% );
-		text-decoration:none;
-	}
-}
 article.userA{
 	background-color:@userA;
 	&:hover{
@@ -216,6 +246,12 @@ article.userD{
 		text-decoration:none;
 	}
 }
+
+
+
+
+// These are mixed colours.
+// Where for example there may be multiple active nodes at this location
 
 // user A
 article.userA.userB{
@@ -255,16 +291,25 @@ article.userA.userB.userC.userD{
 
 //
 
-article.userA.userB.userC.userD{
-	@c : mix(@userA,@userB);
+article.userB.userC{
+	@c : mix(@userB,@userC);
 	background-color:@c;
 }
+article.userB.userD{
+	@c : mix(@userB,@userD);
+	background-color:@c;
+}
+
+
+
+
 
 
 div, h2 { 
 	position: absolute;
 }
 
+@import url(typography.less);
 
 	
 /* Font Size Control Media Queries */
@@ -297,4 +342,3 @@ div, h2 {
 @media screen and (min-width:1600px) {
 	h1, h2, h3 { font-size: 4em; }
 }
-

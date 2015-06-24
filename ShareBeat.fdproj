@@ -8,7 +8,7 @@
     <movie fps="0" />
     <movie width="0" />
     <movie height="0" />
-    <movie version="1" />
+    <movie version="0" />
     <movie minorVersion="0" />
     <movie platform="Default" />
     <movie background="#000000" />
@@ -26,7 +26,7 @@
     <hidden path="obj" />
   </hiddenPaths>
   <!-- Executed before build -->
-  <preBuildCommand>"%APPDATA%\npm\tsc.cmd" --out "bin/assets/js/sharebeat.js" "src/typescript/Main.ts"</preBuildCommand>
+  <preBuildCommand>"%APPDATA%\npm\tsc.cmd" --out "bin/js/$(ProjectName).js" "src/typescript/Main.ts"</preBuildCommand>
   <!-- Executed after build -->
   <postBuildCommand alwaysRun="False" />
   <!-- Other project options -->
