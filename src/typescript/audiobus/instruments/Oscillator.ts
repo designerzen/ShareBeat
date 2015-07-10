@@ -1,11 +1,9 @@
 ///<reference path="../definitions/waa.d.ts" />
 ///<reference path="Instrument.ts" />
 ///<reference path="../ISoundControl.ts" />
-
 module audiobus.instruments
 {
-	// Original Theremin JS Sound by Luke from Femur Design
-    export class Theremin extends Instrument implements ISoundControl
+    export class Oscillator extends Instrument implements ISoundControl
     {
 		private osc:OscillatorNode;
 
@@ -16,36 +14,17 @@ module audiobus.instruments
 			this.create();
 		}
 
+        public setType( type:OscillatorType ):void
+        {
+            this.osc.type = type; // sine wave
+        }
+
 		private create():void
 		{
 			// Synthesize!
 			this.osc = this.context.createOscillator();
-			this.osc.type = 0; // sine wave
+			//this.setType( 0 ); // sine wave
 			this.osc.connect( this.gain );
-
-			this.gain = this.context.createGain();
-		/*
-        	h.volume = a.createGain ? a.createGain() : a.createGainNode(),
-			h.oscVolume = a.createGain ? a.createGain() : a.createGainNode(),
-			h.finalVolume = a.createGain ? a.createGain() : a.createGainNode(),
-			h.scuzzVolume = a.createGain ? a.createGain() : a.createGainNode(),
-			h.filter = a.createBiquadFilter(),
-			h.delay = a.createDelay ? a.createDelay() : a.createDelayNode(),
-			h.feedbackGain = a.createGain ? a.createGain() : a.createGainNode(),
-			h.compressor = a.createDynamicsCompressor(),
-			*/
-
-		}
-
-		public setFilterFrequency(b):void
-		{
-            /*
-			var c = 40,
-				e = a.sampleRate / 2,
-				f = Math.log(e / c) / Math.LN2,
-				g = Math.pow(2, f * (2 / d.clientHeight * (d.clientHeight - b) - 1));
-			h.filter.frequency.value = e * g
-            */
 		}
 
 		public start( frequency:number ):void
@@ -63,7 +42,7 @@ module audiobus.instruments
 			if ( this.isPlaying )
 			{
 				// this note is already playing so don't tweak it.
-				this.gain.gain.value = .5;
+				this.gain.gain.value = 0.5;
 			}else{
 				// freshly playing so ADSR it
 				//this.gain.gain.value = .5;

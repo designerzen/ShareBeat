@@ -12,7 +12,7 @@ module audiobus.instruments
 			super( audioContext, outputTo );
 			// Synthesize!
 			this.osc2 = audioContext.createOscillator();
-			this.osc2.type = 0; // sine wave
+			this.osc2.type = OscillatorType.sine;
 			this.osc2.connect( this.gain );
 		}
 		

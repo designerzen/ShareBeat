@@ -39,7 +39,7 @@
 @keys:16;
 
 
-.normalize();
+.reset();
 
 html{
 	width:100%;
@@ -61,9 +61,37 @@ body{
 	//background-repeat:no-repeat;
 	//background-position:top center;
 	.transition (background-color 0.4s);
-	
 }
 
+body.error{	
+	background-color: darken(@error, 25% ); 
+}
+
+body.loading{
+	background-color:@grey;
+	background-image:url("../images/gif/loader.gif");
+	background-position:center;
+	background-repeat:no-repeat;
+	
+	#matrix{
+		visibility:hidden;
+	}
+}
+
+header{
+	.visuallyhidden();
+}
+
+footer{
+	user-select:noine;
+}
+
+a{
+	text-decoration:none;
+	&:hover{
+		text-decoration:none;
+	}
+}
 
 // Configurable for each instrument type
 .body-action( @colour; @wallpaper; @progress ){
@@ -74,30 +102,58 @@ body{
 	::-moz-selection{ background-color: @bg}
 	::selection{ background-color:@bg }
 	
-	article{
+	.sequencer--step{
+		//border:transparent solid 2px;
 		background-color:lighten(@bg,5%);
 		&:nth-child(odd) {
 			background-color:darken(@bg, 5%);
 		}
 		// hover state	
-		.over,
+		&.over,
 		&:hover{
 			background-color:mix( @orange, @colour );
 			color:darken( @links , 20% );
-			text-decoration:none;
+			
+			//border:@colour solid 2px;
 		}
 	}
 	
-	article.selected{
+	// User is over
+	.sequencer--step.selected{
 		z-index:999;
 		background-color:@colour;
+		&.over,
 		&:hover{
 			background-color:@colour;
 			color:darken( @links , 20% );
-			text-decoration:none;
+			
 		}
 	}
 	
+	// Step has just been triggered
+	.sequencer--step.activated{
+		
+		/*
+		background-color:lighten( @colour , 20% );
+		
+		&:hover{
+			background-color:@colour;
+			color:darken( @links , 20% );
+			
+		}*/
+		
+		// display: inline-block;
+		//vertical-align: middle;
+		//transform: translateZ(0);
+		animation-name: pop;
+		animation-duration: 0.4s;
+		animation-timing-function: ease-out;
+		animation-iteration-count: 1;
+	}
+	
+	footer{
+		color:@colour;
+	}
 	.progress{
 		background-color:fadeout(@progress, 50%);
 	}
@@ -120,71 +176,7 @@ body.saw{
 	.body-action( @userD, @brown ,@green);
 }
 
-
-body.error{	
-	background-color: darken(@error, 25% ); 
-}
-
-header{
-	.visuallyhidden();
-}
-
-
-// square of squares
-@box-width : 100 / @steps;
-@box-height : 100 / @keys;
-
-
-#content{
-	width:100%;
-	margin:auto;
-}
-
-
-#matrix{
-	max-width: 1600px;
-	margin: 20px 40px;
-	padding: 10px 0;
-	overflow: hidden;
-	position:relative;
-	
-	
-	.progress{
-		@size : @box-width + 0%;
-		width: @size;
-		position:absolute;
-		top:0;
-		left:0;
-		bottom:0;
-		height:100%;
-		display:block;
-		pointer-events : none;
-		.transition (all 0.2s);
-		//padding: 40px;
-	}
-}
-
-footer{
-	position:absolute;
-	bottom:0;
-	text-align:center;
-	display:block;
-	text-transform:uppercase;
-	width:100%;
-}
-
-body.loading{
-	background-color:@grey;
-	background-image:url("../img/gif/loader.gif");
-	background-position:center;
-	background-repeat:no-repeat;
-	#matrix{
-		visibility:hidden;
-	}
-	
-}
-
-article{
+.sequencer--step{
 	
 	border-right:1px @brown thin;
 	
@@ -214,90 +206,150 @@ article{
 	}
 }
 
-article.userA{
-	background-color:@userA;
-	&:hover{
-		background-color:@blue;
-		color:darken( @links , 20% );
-		text-decoration:none;
-	}
-}
-article.userB{
-	background-color:@userB;
-	&:hover{
-		background-color:@blue;
-		color:darken( @links , 20% );
-		text-decoration:none;
-	}
-}
-article.userC{
-	background-color:@userC;
-	&:hover{
-		background-color:@blue;
-		color:darken( @links , 20% );
-		text-decoration:none;
-	}
-}
-article.userD{
-	background-color:@userD;
-	&:hover{
-		background-color:@blue;
-		color:darken( @links , 20% );
-		text-decoration:none;
-	}
+.drums .sequencer--step{
+	border-radius:50%;
 }
 
-
-
-
-// These are mixed colours.
-// Where for example there may be multiple active nodes at this location
-
-// user A
-article.userA.userB{
-	@c : mix(@userA,@userB);
-	background-color:@c;
-}
-article.userA.userC{
-	@c : mix(@userA,@userC);
-	background-color:@c;
-}
-article.userA.userD{
-	@c : mix(@userA,@userD);
-	background-color:@c;
-}
-article.userA.userB.userC{
-	@c : mix(@userA,@userB);
-	@d : mix(@c,@userC);
-	background-color:@d;
-}
-article.userA.userB.userD{
-	@c : mix(@userA,@userB);
-	@d : mix(@c,@userD);
-	background-color:@d;
-}
-article.userA.userC.userD{
-	@c : mix(@userA,@userC);
-	@d : mix(@c,@userD);
-	background-color:@d;
-}
-article.userA.userB.userC.userD{
-	@c : mix(@userA,@userB);
-	@d : mix(@userD,@userC);
-	@e : mix(@c,@d);
+// Specififc Overrides
+body.sine,
+body.saw,
+body.drums,
+body.bass{
 	
-	background-color:@e;
+	.sequencer--step.userA{
+		background-color:@userA;
+		&:hover{
+			background-color:@blue;
+			color:darken( @links , 20% );
+			text-decoration:none;
+		}
+	}
+	.sequencer--step.userB{
+		background-color:@userB;
+		&:hover{
+			background-color:@blue;
+			color:darken( @links , 20% );
+			text-decoration:none;
+		}
+	}
+	.sequencer--step.userC{
+		background-color:@userC;
+		&:hover{
+			background-color:@blue;
+			color:darken( @links , 20% );
+			text-decoration:none;
+		}
+	}
+	.sequencer--step.userD{
+		background-color:@userD;
+		&:hover{
+			background-color:@blue;
+			color:darken( @links , 20% );
+			text-decoration:none;
+		}
+	}
+
+
+
+
+	// These are mixed colours.
+	// Where for example there may be multiple active nodes at this location
+
+	// user A
+	.sequencer--step.userA.userB{
+		@c : mix(@userA,@userB);
+		background-color:@c;
+	}
+	.sequencer--step.userA.userC{
+		@c : mix(@userA,@userC);
+		background-color:@c;
+	}
+	.sequencer--step.userA.userD{
+		@c : mix(@userA,@userD);
+		background-color:@c;
+	}
+	.sequencer--step.userA.userB.userC{
+		@c : mix(@userA,@userB);
+		@d : mix(@c,@userC);
+		background-color:@d;
+	}
+	.sequencer--step.userA.userB.userD{
+		@c : mix(@userA,@userB);
+		@d : mix(@c,@userD);
+		background-color:@d;
+	}
+	.sequencer--step.userA.userC.userD{
+		@c : mix(@userA,@userC);
+		@d : mix(@c,@userD);
+		background-color:@d;
+	}
+	.sequencer--step.userA.userB.userC.userD{
+		@c : mix(@userA,@userB);
+		@d : mix(@userD,@userC);
+		@e : mix(@c,@d);
+		
+		background-color:@e;
+	}
+
+	//
+
+	.sequencer--step.userB.userC{
+		@c : mix(@userB,@userC);
+		background-color:@c;
+	}
+	.sequencer--step.userB.userD{
+		@c : mix(@userB,@userD);
+		background-color:@c;
+	}
+
+
+
+
+
 }
 
-//
 
-article.userB.userC{
-	@c : mix(@userB,@userC);
-	background-color:@c;
+#content{
+	width:100%;
+	margin:auto;
 }
-article.userB.userD{
-	@c : mix(@userB,@userD);
-	background-color:@c;
+
+// square of squares
+@box-width : 100 / @steps;
+@box-height : 100 / @keys;
+
+
+#matrix{
+	max-width: 1600px;
+	margin: 20px 40px;
+	padding: 10px 0;
+	overflow: hidden;
+	position:relative;
+	
+	
+	.progress{
+		@size : @box-width + 0%;
+		width: @size;
+		position:absolute;
+		top:0;
+		left:0;
+		bottom:0;
+		height:100%;
+		display:block;
+		pointer-events : none;
+		.transition (all 0.2s);
+		//padding: 40px;
+		border-radius:3px;
+	}
+}
+
+footer{
+	position:absolute;
+	bottom:0;
+	text-align:center;
+	display:block;
+	text-transform:uppercase;
+	width:100%;
 }
 
 
@@ -310,8 +362,10 @@ div, h2 {
 }
 
 @import url(typography.less);
+@import url(share.less);
+@import url(anims.less);
 
-	
+
 /* Font Size Control Media Queries */
 
 @media screen and (min-width:500px) {

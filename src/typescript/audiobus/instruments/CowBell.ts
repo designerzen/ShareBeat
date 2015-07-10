@@ -15,11 +15,11 @@ module audiobus.instruments
 			// Synthesize!
 			//	GENERATE COWBELL
 			this.oscB = audioContext.createOscillator();
-			this.oscB.type = 1; // square wave
+			this.oscB.type = OscillatorType.square; // square wave
 			this.oscB.frequency.value = 900;
 
 			this.oscC = audioContext.createOscillator();
-			this.oscC.type = 1; // square wave
+			this.oscC.type = OscillatorType.square; // square wave
 			this.oscC.frequency.value = 1400;
 
 			

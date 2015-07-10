@@ -10,12 +10,11 @@ module audiobus
 		
 		private playing:boolean = false;
 		public percentage:number = 0;
+		
 		//private callOnBeat:Function;
-		private callOnBeat:(scope:any,time : number)=>any;
-		private callOnProgress:( scope:any,percent : number)=>any;
-
-		private callbackScope;
-
+		public callOnBeat:( time : number)=>any;
+		public callOnProgress:( percent : number)=>any;
+		
 		// INTERALS =======================================================
 		
 		// a way of converting a quantity of beats per minute into periods of bar length
@@ -23,7 +22,6 @@ module audiobus
 		{
 			if ( beatsPerMinute < 1 ) return this.getBpm();
 			var seconds:number = 60 / beatsPerMinute ;
-			
 			
 			this.period = seconds * 1000;
 			
@@ -42,21 +40,8 @@ module audiobus
 		}
 		
 		
-		constructor( onBeatCallback:(scope:any, time : number)=>any, onProgressCallback:(scope:any, percent : number)=>any, scope:any ) 
+		constructor() 
 		{
-			// Assign the method implementation here.
-			this.callOnBeat = onBeatCallback;
-			this.callOnProgress = onProgressCallback;
-			/*
-			this.callOnBeat = () => {
-				onBeatCallback.apply(this, arguments);
-			}
-			
-			this.callOnProgress = () => {
-				onProgressCallback.apply(this, arguments);
-			}
-			*/
-			this.callbackScope = scope;
 		}
 		
 		////////////////////////////////////////////////////////////////////////
@@ -134,7 +119,7 @@ module audiobus
 				
 				// callback! make sure that the scope is consistent
 				//this.callOnBeat.apply( time );
-				this.callOnBeat( this.callbackScope, time );
+				if (this.callOnBeat) this.callOnBeat( time );
 				
 				// call this method immediately again without delay!
 				// this should catch any quickly added cue points at low beats
@@ -144,7 +129,7 @@ module audiobus
 			if ( progress > this.percentage )
 			{
 				this.percentage = progress;
-				this.callOnProgress( this.callbackScope,  this.percentage );
+				if (this.callOnProgress) this.callOnProgress( this.percentage );
 			}
 			
 			//console.log("Progress "+this.percentage );

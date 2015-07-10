@@ -79,11 +79,6 @@ module audiobus
 			
 			// 	Route SIGNALS - MIX AND OUTPUT
 			this.gain.connect( this.dsp.destination );
-			
-			// Fix FF
-			//for legacy browsers
-			//this.osc1.start = this.osc1.start || this.osc1.noteOn;
-			//this.osc1.stop = this.osc1.stop || this.osc1.noteOff;
 		}
 		
 		public trigger( id:number=0 ):void
@@ -137,16 +132,16 @@ module audiobus
 					
 					break;			
 				case 12:
-					this.cowbell.start( 0.025, 0.05, 0.4);
+					this.hihat.start( );
 					break;			
 				case 13:
-					this.cowbell.start( 0.020, 0.04, 0.3);
+					this.hihat.start( );
 					break;			
 				case 14:
-					this.cowbell.start( 0.015, 0.03, 0.2);
+					
 					break;			
 				case 15:
-					this.cowbell.start( 0.010, 0.02, 0.3);
+					this.cowbell.start( 0.015, 0.03, 0.2);
 					break;			
 				case 16:
 					this.cowbell.start( 0.005, 0.01, 0.2);

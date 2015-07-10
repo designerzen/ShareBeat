@@ -1,0 +1,50 @@
+extends partials/base
+
+block scripts
+
+	script(src='https://cdn.firebase.com/v0/firebase.js')
+	script.
+
+		var io = new Firebase('https://sharebeat.firebaseio.com');
+
+		io.on('child_added', function(snapshot) {
+			
+			var msg= snapshot.val().users;
+			
+			var s = '<p>';
+			// {user0: -1, user1: -1, user2: -1, user3: -1}
+			for( var i in msg)
+			{
+				s += i + ' = ' + msg[i] + '<br/>';
+			}
+			s += '</p>';
+			
+			document.getElementsByTagName('body')[0].innerHTML =  s;
+			console.log(msg);
+			document.body.className = 'done';
+		})		
+			
+		window.onload = function(){
+		
+			io.child('data').remove();
+				
+			var usersRef 	= io.child('users');
+			
+			var users = usersRef.set({
+							user0 : -1,
+							user1 : -1,
+							user2 : -1,
+							user3 : -1
+						});
+			
+			io.child('data').remove()
+			
+			var dataRef = io.child('data');
+
+			var user0data =	dataRef.child('user1');
+			var user1data = dataRef.child('user2');
+			var user2data = dataRef.child('user3');
+			var user3data = dataRef.child('user4');
+			
+			console.log(usersRef);
+		}

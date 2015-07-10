@@ -23,35 +23,35 @@ module audiobus.instruments
 			
 			//	GENERATE OSCILLATOR 5,6,7,8,9,A (square)		
 			this.osc5 = audioContext.createOscillator();
-			this.osc5.type = 1; // square wave
+			this.osc5.type = OscillatorType.square; // square wave
 			this.osc5.frequency.value = 600;
 
 			this.osc6 = audioContext.createOscillator();
-			this.osc6.type = 1; // square wave
+			this.osc6.type = OscillatorType.square; // square wave
 			this.osc6.frequency.value = 900;
 
 			this.osc7 = audioContext.createOscillator();
-			this.osc7.type = 1; // square wave
+			this.osc7.type = OscillatorType.square; // square wave
 			this.osc7.frequency.value = 1300;
 
 			this.osc8 = audioContext.createOscillator();
-			this.osc8.type = 1; // square wave
+			this.osc8.type = OscillatorType.square; // square wave
 			this.osc8.frequency.value = 2000;
 
 			this.osc9 = audioContext.createOscillator();
-			this.osc9.type = 1; // square wave
+			this.osc9.type = OscillatorType.square; // square wave
 			this.osc9.frequency.value = 2300;
 
 			this.oscA = audioContext.createOscillator();
-			this.oscA.type = 1; // square wave
+			this.oscA.type = OscillatorType.square; // square wave
 			this.oscA.frequency.value = 2800;
 
 			this.f1 = audioContext.createBiquadFilter();
-			this.f1.type = 1 // HP filter
+			this.f1.type = 1; // HP filter
 			this.f1.frequency.value = 10000;
 				
 			this.f2 = audioContext.createBiquadFilter();
-			this.f2.type = 1 // HP filter
+			this.f2.type = 1; // HP filter
 			this.f2.frequency.value = 10000;
 			
 			this.osc5.connect(this.f1);
