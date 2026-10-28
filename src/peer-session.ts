@@ -177,7 +177,10 @@ export class PeerSession {
         const peer: any = { slot, expires: Date.now() + 10 * 60 * 1000, pc: new RTCPeerConnection({ iceServers: [] }) };
         this.peers.set(slot, peer);
         peer.pc.onconnectionstatechange = () => {
-            if (peer.pc.connectionState === 'failed' || peer.pc.connectionState === 'closed') this.drop(peer);
+            if (peer.pc.connectionState === 'failed') {
+                this.drop(peer);
+                this.status('Could not connect. Keep both original tabs open and try both devices on the same Wi-Fi. These networks may block direct connections.');
+            } else if (peer.pc.connectionState === 'closed') this.drop(peer);
         };
         peer.timer = setTimeout(() => {
             this.drop(peer);

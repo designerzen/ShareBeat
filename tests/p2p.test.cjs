@@ -2,58 +2,65 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 
-test('four browsers share additions, removals, snapshots and released instruments over native WebRTC', { timeout: 120000 }, async () => {
+test('invitation and reply URLs connect four isolated sessions, including replies opened in new tabs', { timeout: 120000 }, async () => {
   const { createServer } = await import('vite');
   const server = await createServer({ server: { host: '127.0.0.1', port: 0 }, logLevel: 'error' });
   await server.listen();
   const browser = await chromium.launch();
-  const pages = [];
-  const errors = [];
-  const external = [];
+  const pages = [], errors = [], external = [];
   const base = server.resolvedUrls.local[0];
   async function page() {
-    const context = await browser.newContext();
+    const context = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });
     const p = await context.newPage();
     p.on('pageerror', error => errors.push(error.message));
     p.on('request', request => { if (!request.url().startsWith(base)) external.push(request.url()); });
     await p.goto(base);
-    await p.waitForSelector('#matrix .pad');
-    await p.waitForFunction(() => document.querySelector('.instrument-name').textContent.includes('Sine'));
+    await p.waitForSelector('.matrix .pad');
     pages.push(p);
     return p;
   }
   async function share(p) {
     if (!await p.locator('#share-dialog').isVisible()) await p.click('[data-action="share"]');
   }
-  async function join(host, guest, instrument) {
+  async function closeShare(p) {
+    if (await p.locator('#share-dialog').isVisible()) await p.getByRole('button', { name: 'Close share dialog' }).click();
+  }
+  async function join(host, guest, instrument, sameTab = false) {
     await share(host);
-    await share(guest);
-    await host.click('[data-action="invite"]');
-    await host.waitForFunction(() => document.querySelector('#peer-output')?.value.includes('"offer"'));
-    const offer = await host.locator('#peer-output').inputValue();
-    await guest.click('[data-action="join-mode"]');
-    await guest.fill('#peer-input', offer);
-    await guest.click('[data-action="join"]');
-    await guest.waitForFunction(() => document.querySelector('#peer-output')?.value.includes('"answer"'));
-    if (instrument === 'Drums') {
-      await host.fill('#peer-input', '{invalid');
-      await host.click('[data-action="answer"]');
-      await host.waitForFunction(() => document.querySelector('#peer-status').textContent.includes('complete connection code'));
+    if (await host.locator('[data-action="invite"]').isVisible()) await host.click('[data-action="invite"]');
+    await host.waitForFunction(() => document.querySelector('#peer-output')?.value.includes('#invite='));
+    const invite = await host.locator('#peer-output').inputValue();
+    assert.ok(invite.startsWith(base + '#invite=1.'));
+    assert.ok(invite.length < 4000, 'compressed invitation fits in a message');
+    await host.click('[data-action="copy"]');
+    assert.equal(await host.evaluate(() => navigator.clipboard.readText()), invite);
+    await guest.goto(invite);
+    await guest.waitForFunction(() => document.querySelector('#peer-output')?.value.includes('#reply='));
+    const reply = await guest.locator('#peer-output').inputValue();
+    assert.ok(reply.startsWith(base + '#reply=1.'));
+    assert.equal(new URL(guest.url()).hash, '', 'connection details are removed after opening the invitation');
+    await guest.click('[data-action="copy"]');
+    assert.equal(await guest.evaluate(() => navigator.clipboard.readText()), reply);
+    if (sameTab) await host.goto(reply);
+    else {
+      const replyTab = await host.context().newPage();
+      await replyTab.goto(reply);
+      await replyTab.waitForSelector('.reply-delivered');
+      await replyTab.close();
     }
-    await host.fill('#peer-input', await guest.locator('#peer-output').inputValue());
-    await host.click('[data-action="answer"]');
     await guest.waitForFunction(name => document.querySelector('.instrument-name').textContent.includes(name), instrument);
-    await host.getByRole('button', { name: 'Close share dialog' }).click();
-    await guest.getByRole('button', { name: 'Close share dialog' }).click();
+    await host.waitForSelector('.connected-message');
+    await closeShare(host);
+    await closeShare(guest);
   }
   async function selected(p, cell, user, expected = true) {
     await p.waitForFunction(({ cell, user, expected }) =>
-      document.querySelectorAll('#matrix .pad')[cell].classList.contains('user' + user) === expected,
+      document.querySelectorAll('.matrix .pad')[cell].classList.contains('user' + user) === expected,
       { cell, user, expected });
   }
   try {
     const host = await page();
-    await host.locator('#matrix .pad').nth(34).click();
+    await host.locator('.matrix .pad').nth(34).click();
     const b = await page();
     await join(host, b, 'Drums');
     await selected(b, 34, 'A');
@@ -61,44 +68,39 @@ test('four browsers share additions, removals, snapshots and released instrument
     await b.waitForFunction(() => document.querySelector('share-beat').trackWaveforms[0] === 'triangle');
     assert.equal(await b.locator('[data-action="waveform"]').count(), 0, 'drums keep their instrument label');
     const c = await page();
-    await join(host, c, 'Bass');
+    await join(host, c, 'Bass', true);
     assert.equal(await c.evaluate(() => document.querySelector('share-beat').trackWaveforms[0]), 'triangle', 'joining receives the selected waveform');
     await c.locator('[data-action="waveform"]').click();
     for (const p of pages) await p.waitForFunction(() => document.querySelector('share-beat').trackWaveforms[2] === 'triangle');
+    assert.equal(await c.locator('share-beat').getAttribute('oscillator-type'), 'triangle', 'controls set the grid attribute');
     const d = await page();
     await join(host, d, 'Saw');
-    await b.locator('#matrix .pad').nth(51).click();
+    await b.locator('.matrix .pad').nth(51).click();
     for (const p of pages) await selected(p, 51, 'B');
-    // Replacing a note must clear its previous row on every browser.
-    await b.locator('#matrix .pad').nth(67).click();
-    for (const p of pages) {
-      await selected(p, 51, 'B', false);
-      await selected(p, 67, 'B');
-    }
-    await b.locator('#matrix .pad').nth(67).click();
+    await b.locator('.matrix .pad').nth(67).click();
+    for (const p of pages) { await selected(p, 51, 'B', false); await selected(p, 67, 'B'); }
+    await b.locator('.matrix .pad').nth(67).click();
     for (const p of pages) await selected(p, 67, 'B', false);
     await share(host);
-    assert.equal(await host.locator('[data-action="invite"]').isDisabled(), true, 'full sessions cannot create another invitation');
-    await host.getByRole('button', { name: 'Close share dialog' }).click();
-    await b.locator('#matrix .pad').nth(68).click();
+    assert.equal(await host.locator('[data-action="invite"]').isDisabled(), true);
+    await closeShare(host);
+    await b.locator('.matrix .pad').nth(68).click();
     await selected(c, 68, 'B');
     await share(b);
+    await b.locator('.link-help summary').click();
     await b.click('[data-action="leave"]');
     await selected(host, 68, 'B', false);
     await selected(c, 68, 'B', false);
-    await b.waitForFunction(() => document.querySelector('.instrument-name').textContent.includes('Sine'));
-    await join(host, b, 'Drums');
+    await join(host, b, 'Drums', true);
     await selected(b, 34, 'A');
     await share(host);
+    await host.locator('.link-help summary').click();
     await host.click('[data-action="leave"]');
     for (const p of [b, c, d]) {
       await p.waitForFunction(() => document.querySelector('.instrument-name').textContent.includes('Sine'));
       await selected(p, 34, 'A', false);
     }
-    assert.deepEqual(errors, [], 'no browser runtime errors');
+    assert.deepEqual(errors, []);
     assert.deepEqual(external, [], 'no external service or CDN requests');
-  } finally {
-    await browser.close();
-    await server.close();
-  }
+  } finally { await browser.close(); await server.close(); }
 });

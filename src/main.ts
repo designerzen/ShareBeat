@@ -1,2 +1,2 @@
 import './styles.css'
-import './share-beat'
+import './share-beat-app'
