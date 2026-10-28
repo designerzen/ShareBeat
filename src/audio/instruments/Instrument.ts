@@ -9,6 +9,7 @@ export class Instrument {
 
     constructor(public context: AudioContext, outputTo: GainNode) {
         this.gain = context.createGain();
+        this.gain.gain.value = this.SILENCE;
         this.gain.connect(outputTo);
     }
 
@@ -25,15 +26,13 @@ export class Instrument {
 
     public fadeIn(time = 0.1): void {
         const now = this.context.currentTime;
-        this.gain.gain.cancelScheduledValues(now);
-        this.gain.gain.exponentialRampToValueAtTime(this.amplitude, now + time);
-        this.gain.gain.setValueAtTime(this.amplitude, now + time + 0.01);
+        this.gain.gain.cancelAndHoldAtTime(now);
+        this.gain.gain.setTargetAtTime(this.amplitude, now, Math.max(0.003, time / 5));
     }
 
     public fadeOut(time = 0.1): void {
         const now = this.context.currentTime;
-        this.gain.gain.cancelScheduledValues(now);
-        this.gain.gain.exponentialRampToValueAtTime(this.SILENCE, now + time);
-        this.gain.gain.setValueAtTime(0, now + time + 0.01);
+        this.gain.gain.cancelAndHoldAtTime(now);
+        this.gain.gain.setTargetAtTime(this.SILENCE, now, Math.max(0.003, time / 5));
     }
 }

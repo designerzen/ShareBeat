@@ -1,10 +1,19 @@
 
 // Native WebRTC data channels. Invitations carry complete SDP/ICE descriptions;
 // no database, signaling endpoint, STUN, or TURN service is contacted.
+export interface SessionInfo {
+    host: boolean;
+    players: number[];
+    pending: boolean;
+    connected: boolean;
+}
+
 export class PeerSession {
     public userid = 0;
     public onStatus: (message: string) => void = () => {};
     public onClock: (offset: number) => void = () => {};
+    public onSessionChange: (session: SessionInfo) => void = () => {};
+    private sessionPlayers = [0];
     private host = true;
     private peers = new Map<number, any>();
     private tracks: number[][] = this.emptyTracks();
@@ -24,7 +33,16 @@ export class PeerSession {
         this.status('Solo session. Create an invitation to add a player.');
     }
 
-    private status(message: string): void { this.onStatus(message); }
+    public get session(): SessionInfo {
+        const players = this.host
+            ? [0, ...Array.from(this.peers.values()).filter(peer => peer.channel?.readyState === 'open').map(peer => peer.slot)]
+            : this.sessionPlayers;
+        return { host: this.host, players, pending: !!this.pending, connected: this.host ? players.length > 1 : this.userid > 0 };
+    }
+    private status(message: string): void {
+        this.onSessionChange(this.session);
+        this.onStatus(message);
+    }
     private validNote(step: any, note: any): boolean {
         return Number.isInteger(step) && step >= 0 && step < 16 &&
             Number.isInteger(note) && note >= -1 && note < 16;
@@ -43,7 +61,14 @@ export class PeerSession {
     private broadcast(message: any): void {
         this.peers.forEach(peer => this.send(peer, message));
     }
-    private snapshot(): any { return { type: 'state', tracks: this.tracks }; }
+    private snapshot(): any { return { type: 'state', tracks: this.tracks, players: this.session.players }; }
+    private updatePlayers(players: any): void {
+        if (Array.isArray(players) && players.length <= 4 &&
+            players.every(user => Number.isInteger(user) && user >= 0 && user < 4)) {
+            this.sessionPlayers = [...new Set<number>(players)];
+            this.onSessionChange(this.session);
+        }
+    }
     private renderState(tracks: any): void {
         if (!Array.isArray(tracks) || tracks.length !== 4 ||
             tracks.some(row => !Array.isArray(row) || row.length !== 16 ||
@@ -78,8 +103,12 @@ export class PeerSession {
                 this.userid = message.user;
                 this.callbackID(this.userid);
                 this.renderState(message.tracks);
+                this.updatePlayers(message.players);
                 this.status('Connected as player ' + (this.userid + 1) + '.');
-            } else if (message.type === 'state') this.renderState(message.tracks);
+            } else if (message.type === 'state') {
+                this.renderState(message.tracks);
+                this.updatePlayers(message.players);
+            }
             else if (message.type === 'note' && Number.isInteger(message.user) && message.user >= 0 && message.user < 4 &&
                      this.validNote(message.step, message.note)) {
                 this.tracks[message.user][message.step] = message.note;
@@ -104,8 +133,9 @@ export class PeerSession {
             clearTimeout(peer.timer);
             if (this.pending === peer) this.pending = null;
             if (this.host) {
-                this.send(peer, { type: 'welcome', user: peer.slot, tracks: this.tracks });
-                this.status(this.peers.size + 1 + ' players in this session.');
+                this.send(peer, { type: 'welcome', user: peer.slot, tracks: this.tracks, players: this.session.players });
+                this.broadcast(this.snapshot());
+                this.status(this.session.players.length + ' players in this session.');
             } else {
                 const ping = () => this.send(peer, { type: 'ping', sent: Date.now() });
                 ping();
@@ -141,6 +171,7 @@ export class PeerSession {
             clearInterval(this.clockTimer);
             this.host = true;
             this.userid = 0;
+            this.sessionPlayers = [0];
             this.clockSamples = [];
             this.onClock(0);
             this.callbackID(0);
@@ -180,6 +211,7 @@ export class PeerSession {
         if (slot === undefined) throw new Error('This session already has four players.');
         const peer = this.createPeer(slot);
         this.pending = peer;
+        this.onSessionChange(this.session);
         peer.token = crypto.randomUUID();
         this.attach(peer, peer.pc.createDataChannel('sharebeat', { ordered: true }));
         try {
