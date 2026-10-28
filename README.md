@@ -6,7 +6,7 @@ A browser synthesizer built with Lit, TypeScript, Vite, Web Audio, and native We
 
 Click the grid to enable audio and add or remove notes. To play together, open the app on each device and follow the invitation steps below.
 
-Use **Play loop** / **Pause** to control playback, **Try a melody** for a starting pattern, and **Clear my notes** to start again. Each player's notes have a distinct color. Arrow keys move around the grid; Space or Enter toggles a note.
+Playback starts when you add a note. Open **Share** to invite a friend or join a session. Arrow keys move around the grid; Space or Enter toggles a note.
 
 ## Run locally
 
@@ -40,9 +40,9 @@ The site is published at [designerzen.github.io/ShareBeat/](https://designerzen.
 
 ## Play with friends
 
-1. The host selects **Invite a friend**, then **Copy code**, and sends it to one friend.
+1. Both players open **Share**. The host selects **Invite a friend**, then **Copy code**, and sends it to one friend.
 2. The friend selects **Join a session**, pastes the invitation, and selects **Create reply code**. They copy the reply and send it back.
-3. The host pastes the reply into **Paste their reply code** and selects **Connect with friend**.
+3. The host pastes the reply into **Their reply code** and selects **Connect**.
 4. Repeat with a new invitation for each friend, up to four players total.
 
 Invitations expire after two minutes. Cancel unused invitations to release their instrument. Joining replaces your solo pattern with the host's pattern. Guests return to fresh solo sessions if the host leaves. Guest clocks follow the host for approximate beat alignment, rather than sample-accurate audio synchronization.
@@ -56,7 +56,7 @@ Connections use WebRTC data channels with manually exchanged connection details.
 - `src/audio/` — instruments and beat timing
 - `src/styles.css` — app styling
 - `tests/p2p.test.cjs` — four-browser integration test
-- `tests/ui.test.cjs` — responsive layout, keyboard controls, and guided connections
+- `tests/ui.test.cjs` — simple grid, keyboard controls, and share dialog
 - `tests/audio.test.cjs` — offline bass continuity checks at 44.1 and 48 kHz
 
 Originally made at Music Hack Day London 2013 by @designerzen and @diogomoreda.

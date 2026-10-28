@@ -18,11 +18,16 @@ test('four browsers share additions, removals, snapshots and released instrument
     p.on('request', request => { if (!request.url().startsWith(base)) external.push(request.url()); });
     await p.goto(base);
     await p.waitForSelector('#matrix .pad');
-    await p.waitForFunction(() => document.querySelector('.instrument-pill').textContent.includes('Sine'));
+    await p.waitForFunction(() => document.querySelector('.instrument-name').textContent.includes('Sine'));
     pages.push(p);
     return p;
   }
+  async function share(p) {
+    if (!await p.locator('#share-dialog').isVisible()) await p.click('[data-action="share"]');
+  }
   async function join(host, guest, instrument) {
+    await share(host);
+    await share(guest);
     await host.click('[data-action="invite"]');
     await host.waitForFunction(() => document.querySelector('#peer-output')?.value.includes('"offer"'));
     const offer = await host.locator('#peer-output').inputValue();
@@ -37,7 +42,9 @@ test('four browsers share additions, removals, snapshots and released instrument
     }
     await host.fill('#peer-input', await guest.locator('#peer-output').inputValue());
     await host.click('[data-action="answer"]');
-    await guest.waitForFunction(name => document.querySelector('.instrument-pill').textContent.includes(name), instrument);
+    await guest.waitForFunction(name => document.querySelector('.instrument-name').textContent.includes(name), instrument);
+    await host.getByRole('button', { name: 'Close share dialog' }).click();
+    await guest.getByRole('button', { name: 'Close share dialog' }).click();
   }
   async function selected(p, cell, user, expected = true) {
     await p.waitForFunction(({ cell, user, expected }) =>
@@ -64,18 +71,22 @@ test('four browsers share additions, removals, snapshots and released instrument
     }
     await b.locator('#matrix .pad').nth(67).click();
     for (const p of pages) await selected(p, 67, 'B', false);
+    await share(host);
     assert.equal(await host.locator('[data-action="invite"]').isDisabled(), true, 'full sessions cannot create another invitation');
+    await host.getByRole('button', { name: 'Close share dialog' }).click();
     await b.locator('#matrix .pad').nth(68).click();
     await selected(c, 68, 'B');
+    await share(b);
     await b.click('[data-action="leave"]');
     await selected(host, 68, 'B', false);
     await selected(c, 68, 'B', false);
-    await b.waitForFunction(() => document.querySelector('.instrument-pill').textContent.includes('Sine'));
+    await b.waitForFunction(() => document.querySelector('.instrument-name').textContent.includes('Sine'));
     await join(host, b, 'Drums');
     await selected(b, 34, 'A');
+    await share(host);
     await host.click('[data-action="leave"]');
     for (const p of [b, c, d]) {
-      await p.waitForFunction(() => document.querySelector('.instrument-pill').textContent.includes('Sine'));
+      await p.waitForFunction(() => document.querySelector('.instrument-name').textContent.includes('Sine'));
       await selected(p, 34, 'A', false);
     }
     assert.deepEqual(errors, [], 'no browser runtime errors');
