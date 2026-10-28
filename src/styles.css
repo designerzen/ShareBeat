@@ -62,7 +62,7 @@ share-beat-app { display: block; }
 .btn.primary { background: #303d28; border-color: #303d28; color: #fff; font-weight: 550; }
 .btn:hover:not(:disabled) { background: #e8eee2; }
 .btn.primary:hover:not(:disabled) { background: #445737; }
-#peer-status { margin: 16px 0 0; font-size: 13px; line-height: 1.5; color: #614425; overflow-wrap: anywhere; }
+#peer-status { margin: 0 0 16px; font-size: 13px; line-height: 1.5; color: #614425; overflow-wrap: anywhere; }
 .link-label { display: block; margin: 14px 0 7px; font-size: 12px; font-weight: 550; }
 #share-dialog input { display: block; width: 100%; min-width: 0; padding: 11px; border: 1px solid #b9c3b1; border-radius: 6px; background: #fff; color: #252a22; font: 12px/1.5 ui-monospace, monospace; }
 #peer-output { text-overflow: ellipsis; }

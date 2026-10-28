@@ -2,6 +2,7 @@
 // Native WebRTC data channels. Invitations carry complete SDP/ICE descriptions;
 // no database, signaling endpoint, STUN, or TURN service is contacted.
 import { defaultWaveforms, isWaveform, type Waveform } from './audio/waveforms';
+import { connectionDiagnostics, summarizeCandidates, type ConnectionDiagnostics } from './connection-diagnostics';
 
 export interface SessionInfo {
     host: boolean;
@@ -16,6 +17,7 @@ export class PeerSession {
     public onClock: (offset: number) => void = () => {};
     public onWaveform: (user: number, waveform: Waveform) => void = () => {};
     public onSessionChange: (session: SessionInfo) => void = () => {};
+    public onDiagnostics: (details: ConnectionDiagnostics) => void = () => {};
     private sessionPlayers = [0];
     private host = true;
     private peers = new Map<number, any>();
@@ -156,9 +158,13 @@ export class PeerSession {
     private attach(peer: any, channel: RTCDataChannel): void {
         peer.channel = channel;
         channel.onmessage = event => this.receive(peer, event.data);
-        channel.onclose = () => this.drop(peer);
-        channel.onerror = () => this.drop(peer);
+        channel.onclose = () => {
+            if (peer.opened) this.drop(peer);
+            else this.fail(peer, 'data-channel', 'The browsers closed the connection before it opened. Check WebRTC/local-network access in both browsers, then create a new invitation.');
+        };
+        channel.onerror = () => this.fail(peer, 'data-channel', 'The browser could not open the data channel. Check WebRTC/local-network access in both browsers, then create a new invitation.');
         channel.onopen = () => {
+            peer.opened = true;
             clearTimeout(peer.timer);
             if (this.pending === peer) this.pending = null;
             if (this.host) {
@@ -172,19 +178,26 @@ export class PeerSession {
             }
         };
     }
+    private fail(peer: any, stage: string, message: string): void {
+        if (this.peers.get(peer.slot) !== peer) return;
+        const details = connectionDiagnostics(peer.pc, stage);
+        this.drop(peer);
+        this.status(message);
+        this.onDiagnostics(details);
+    }
     private createPeer(slot: number): any {
         if (typeof RTCPeerConnection === 'undefined') throw new Error('This browser does not support WebRTC. Solo play is available.');
         const peer: any = { slot, expires: Date.now() + 10 * 60 * 1000, pc: new RTCPeerConnection({ iceServers: [] }) };
         this.peers.set(slot, peer);
-        peer.pc.onconnectionstatechange = () => {
-            if (peer.pc.connectionState === 'failed') {
-                this.drop(peer);
-                this.status('Could not connect. Keep both original tabs open and try both devices on the same Wi-Fi. These networks may block direct connections.');
+        const checkConnection = () => {
+            if (peer.pc.connectionState === 'failed' || peer.pc.iceConnectionState === 'failed') {
+                this.fail(peer, 'ice-checks', 'The browsers could not establish a direct WebRTC connection. Check local-network access, WebRTC privacy settings, and browser firewall permissions.');
             } else if (peer.pc.connectionState === 'closed') this.drop(peer);
         };
+        peer.pc.onconnectionstatechange = checkConnection;
+        peer.pc.oniceconnectionstatechange = checkConnection;
         peer.timer = setTimeout(() => {
-            this.drop(peer);
-            this.status('Could not connect. Keep both original tabs open and try on the same Wi-Fi. These networks may block direct connections.');
+            this.fail(peer, 'invitation-expired', 'The invitation expired before connecting. Create a new invitation and keep both original tabs open.');
         }, 10 * 60 * 1000);
         return peer;
     }
@@ -219,6 +232,7 @@ export class PeerSession {
             const finish = (error?: Error) => {
                 clearTimeout(timer);
                 pc.removeEventListener('icegatheringstatechange', check);
+                if (error) this.onDiagnostics(connectionDiagnostics(pc, 'gathering-timeout'));
                 error ? reject(error) : resolve();
             };
             const check = () => { if (pc.iceGatheringState === 'complete') finish(); };
@@ -226,6 +240,10 @@ export class PeerSession {
             pc.addEventListener('icegatheringstatechange', check);
             check();
         });
+        if (!summarizeCandidates(pc.localDescription?.sdp).total) {
+            this.onDiagnostics(connectionDiagnostics(pc, 'gathering'));
+            throw new Error('This browser did not provide any WebRTC connection addresses. Allow local-network/WebRTC access for this site and check WebRTC-blocking extensions, then try again.');
+        }
         return JSON.stringify({ app: 'sharebeat', version: 1, token: peer.token, expires: peer.expires, description: pc.localDescription });
     }
     private parse(code: string, type: string): any {
@@ -237,6 +255,7 @@ export class PeerSession {
             throw new Error('This is not a ShareBeat ' + type + ' code.');
         }
         if (!Number.isFinite(data.expires) || data.expires < Date.now()) throw new Error('This link has expired. Create a new invitation.');
+        if (!summarizeCandidates(data.description.sdp).total) throw new Error('This link contains no WebRTC connection addresses. Ask the sender to allow local-network/WebRTC access in their browser and create a new invitation.');
         return data;
     }
     public async createInvitation(): Promise<string> {
@@ -274,9 +293,8 @@ export class PeerSession {
         const peer = this.pending;
         await peer.pc.setRemoteDescription(data.description);
         clearTimeout(peer.timer);
-        peer.timer = setTimeout(() => {
-            this.drop(peer);
-            this.status('Could not connect. These networks may block direct connections. Try both devices on the same Wi-Fi.');
+        if (peer.channel?.readyState !== 'open') peer.timer = setTimeout(() => {
+            this.fail(peer, 'ice-timeout', 'The reply reached the original tab, but WebRTC could not connect. Check local-network access and WebRTC privacy/firewall settings in both browsers.');
         }, 20000);
     }
     public cancelInvitation(): void { if (this.pending) this.drop(this.pending); }

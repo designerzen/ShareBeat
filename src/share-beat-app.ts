@@ -1,13 +1,14 @@
 import { LitElement, html, nothing } from 'lit';
 import { PeerSession, type SessionInfo } from './peer-session';
 import { createSignalLink, readSignalLink, type SignalLink } from './signal-links';
+import { networkPermissions, type ConnectionDiagnostics } from './connection-diagnostics';
 import { defaultWaveforms, waveforms, type Waveform } from './audio/waveforms';
 
 import './share-beat';
 import { GridAudioController } from './audio/grid-audio-controller';
 import type { ShareBeat, NoteChangeDetail } from './share-beat';
 
-type Flow = 'idle' | 'host' | 'waiting' | 'connecting' | 'delivered' | 'return';
+type Flow = 'idle' | 'host' | 'waiting' | 'connecting' | 'delivered' | 'return' | 'failed';
 
 export class ShareBeatApp extends LitElement {
     static properties = {
@@ -15,7 +16,7 @@ export class ShareBeatApp extends LitElement {
         status: { state: true }, receivedLink: { state: true }, outputLink: { state: true },
         busy: { state: true }, flow: { state: true },
         session: { state: true }, error: { state: true }, copied: { state: true },
-        trackWaveforms: { state: true }
+        trackWaveforms: { state: true }, diagnostics: { state: true }
     };
     declare private tracks: number[][];
     declare private user: number;
@@ -29,6 +30,7 @@ export class ShareBeatApp extends LitElement {
     declare private error: string;
     declare private copied: boolean;
     declare private trackWaveforms: Waveform[];
+    declare private diagnostics: ConnectionDiagnostics | null;
     private peer = new PeerSession(
         (user, step, note) => this.setNote(user, step, note),
         user => { this.user = user; }
@@ -54,14 +56,16 @@ export class ShareBeatApp extends LitElement {
         this.session = { host: true, players: [0], pending: false, connected: false };
         this.error = '';
         this.copied = false;
+        this.diagnostics = null;
     }
     protected createRenderRoot() { return this; }
     connectedCallback(): void {
         super.connectedCallback();
         this.peer.onStatus = message => {
             this.status = message.startsWith('Solo session') ? 'Your solo session is ready.' : message;
-            if (/timed out|could not|host disconnected/i.test(message)) this.error = message;
+            if (/timed out|could not|expired|host disconnected|reply reached|closed the connection/i.test(message)) { this.error = message; this.flow = 'failed'; }
         };
+        this.peer.onDiagnostics = details => { this.diagnostics = details; this.flow = 'failed'; };
         this.peer.onSessionChange = session => {
             this.session = session;
             if ((!session.pending && this.flow === 'host') ||
@@ -109,6 +113,7 @@ export class ShareBeatApp extends LitElement {
         if (this.busy) return;
         this.busy = true;
         this.error = '';
+        this.diagnostics = null;
         await this.showShare();
         try {
             const signal = await readSignalLink(link);
@@ -136,7 +141,7 @@ export class ShareBeatApp extends LitElement {
                 }, 2500);
             }
             this.receivedLink = '';
-        } catch (error) { this.error = error.message; }
+        } catch (error) { this.error = error.message; this.flow = 'failed'; }
         finally { this.busy = false; }
     }
     private async routeReply(message: any): Promise<void> {
@@ -185,12 +190,17 @@ export class ShareBeatApp extends LitElement {
         this.busy = true;
         try {
             if (action === 'invite') {
+                this.diagnostics = null;
                 this.peer.cancelInvitation();
                 this.status = 'Preparing your invitation link…';
                 this.outputLink = await createSignalLink(await this.peer.createInvitation());
                 this.flow = 'host';
                 this.receivedLink = '';
                 this.copied = false;
+            } else if (action === 'diagnostics') {
+                const details = JSON.stringify({ ...this.diagnostics, origin: location.origin, secureContext: isSecureContext, permissions: await networkPermissions() }, null, 2);
+                await navigator.clipboard.writeText(details);
+                this.status = 'Connection details copied.';
             } else if (action === 'copy') {
                 try {
                     await navigator.clipboard.writeText(this.outputLink);
@@ -209,7 +219,7 @@ export class ShareBeatApp extends LitElement {
                 this.peer.disconnect();
                 this.resetFlow();
             }
-        } catch (error) { this.error = error.message; }
+        } catch (error) { this.error = error.message; this.flow = 'failed'; }
         finally { this.busy = false; }
     }
     private control(action: string, label: string, primary = false, disabled = false) {
@@ -222,6 +232,7 @@ export class ShareBeatApp extends LitElement {
             ${this.control('copy', this.copied ? 'Link copied' : 'Copy ' + kind + ' link', true)}`;
     }
     private connectionFlow() {
+        if (this.flow === 'failed') return this.session.host ? this.control('invite', 'Create a new invitation', true) : nothing;
         if (this.busy && !this.outputLink) return html`<p role="status">Preparing your link…</p>`;
         if (this.flow === 'host') return html`
             <p>Send this link to your friend. Keep this tab open.</p>
@@ -246,7 +257,8 @@ export class ShareBeatApp extends LitElement {
                     @input=${(event: Event) => { this.receivedLink = (event.target as HTMLInputElement).value; }}>
                 <button class="btn secondary" type="submit" ?disabled=${this.busy || !this.receivedLink.trim()}>Open link</button>
             </form>
-            <p class="network-note">Keep the original tabs open. Direct connections work best on the same Wi-Fi; some networks require a relay, which this app does not use.</p>
+            <p class="network-note">Open the reply in the browser that created the invitation. Allow local-network access if prompted. WebRTC/privacy settings and OS firewall rules can block even two browsers on the same computer.</p>
+            ${this.diagnostics ? this.control('diagnostics', this.status === 'Connection details copied.' ? 'Connection details copied' : 'Copy connection details') : nothing}
             ${this.session.pending || this.flow === 'waiting' ? this.control('cancel', 'Cancel invitation') : nothing}
             ${this.session.connected ? this.control('leave', 'Leave session') : nothing}
         </details>`;
@@ -285,11 +297,10 @@ export class ShareBeatApp extends LitElement {
                     const box = dialog.getBoundingClientRect();
                     if (event.target === dialog && (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom)) this.closeShare();
                 }}>
-                    <div class="dialog-heading"><h1 id="share-title">${this.flow === 'host' ? 'Invite a friend' : this.flow === 'waiting' ? 'Send your reply' : this.flow === 'delivered' ? 'Reply delivered' : this.flow === 'connecting' ? 'Connecting' : this.session.connected ? 'Connected' : 'Share'}</h1>
+                    <div class="dialog-heading"><h1 id="share-title">${this.flow === 'host' ? 'Invite a friend' : this.flow === 'waiting' ? 'Send your reply' : this.flow === 'delivered' ? 'Reply delivered' : this.flow === 'connecting' ? 'Connecting' : this.flow === 'failed' ? 'Connection failed' : this.session.connected ? 'Connected' : 'Share'}</h1>
                         <button class="close-dialog" type="button" aria-label="Close share dialog" @click=${this.closeShare}>×</button></div>
+                    <p id="peer-status" role="status" aria-live="polite" ?hidden=${!this.error}>${this.error}</p>
                     <section id="peer-controls" aria-busy=${this.busy}>${this.connectionFlow()}${this.troubleshooting()}</section>
-                    <p id="peer-status" role="status" aria-live="polite" ?hidden=${!this.error}>
-                        ${this.error}</p>
                 </dialog>
             </main>`;
     }

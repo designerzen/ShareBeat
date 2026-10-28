@@ -7,7 +7,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "node --test tests/*.test.cjs",
-    "test:setup": "playwright install chromium"
+    "test:setup": "playwright install chromium firefox"
   },
   "devDependencies": {
     "playwright": "^1.64.1",
