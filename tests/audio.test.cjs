@@ -13,6 +13,8 @@ test('bass pitch changes and interrupted envelopes stay continuous at 44.1 and 4
     const results = await page.evaluate(async () => {
       const { Sine } = await import('/src/audio/instruments/sine.ts');
       const measurements = [];
+      for (const fallback of [false, true]) {
+      if (fallback) Object.defineProperty(AudioParam.prototype, 'cancelAndHoldAtTime', { value: undefined, configurable: true });
       for (const rate of [44100, 48000]) {
         const context = new OfflineAudioContext(1, rate, rate);
         const output = context.createGain();
@@ -38,7 +40,8 @@ test('bass pitch changes and interrupted envelopes stay continuous at 44.1 and 4
           peak = Math.max(peak, Math.abs(samples[i]));
           if (i > rate * 0.95) tail = Math.max(tail, Math.abs(samples[i]));
         }
-        measurements.push({ rate, maxDelta, peak, tail, first: samples[0] });
+        measurements.push({ fallback, rate, maxDelta, peak, tail, first: samples[0] });
+      }
       }
       return measurements;
     });

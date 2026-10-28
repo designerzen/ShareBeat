@@ -15,7 +15,14 @@ test('simple grid stays unobstructed and sharing is confined to an accessible di
     await page.goto(server.resolvedUrls.local[0]);
     await page.waitForSelector('.pad');
     assert.equal(await page.locator('.pad').count(), 256);
-    assert.equal(await page.locator('.grid-tools button').count(), 1, 'only Share sits outside the grid');
+    assert.equal(await page.locator('.grid-tools button').count(), 2, 'waveform and Share sit outside the grid');
+    const waveform = page.locator('[data-action="waveform"]');
+    for (const name of ['Triangle', 'Square', 'Saw', 'Sine']) {
+      await waveform.click();
+      assert.equal((await waveform.textContent()).trim(), name);
+    }
+    // Reproduce browsers without cancelAndHoldAtTime through the real UI.
+    await page.evaluate(() => Object.defineProperty(AudioParam.prototype, 'cancelAndHoldAtTime', { value: undefined, configurable: true }));
     assert.equal(await page.locator('.intro, .transport, .session-panel, input[type="range"]').count(), 0);
     assert.equal(await page.locator('#share-dialog').isVisible(), false);
     assert.equal(await page.locator('textarea').count(), 0);
@@ -24,6 +31,13 @@ test('simple grid stays unobstructed and sharing is confined to an accessible di
     assert.equal(await page.locator('.pad').nth(129).evaluate(el => el === document.activeElement), true);
     await page.keyboard.press('Space');
     await page.waitForFunction(() => document.querySelectorAll('.pad')[129].getAttribute('aria-pressed') === 'true');
+    await page.waitForFunction(() => document.querySelector('share-beat').sine?.hasInitialised);
+    await waveform.click();
+    assert.equal(await page.evaluate(() => document.querySelector('share-beat').sine.osc.type), 'triangle');
+    await waveform.focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await page.evaluate(() => document.querySelector('share-beat').sine.osc.type), 'square');
+    await page.locator('.pad').nth(129).focus();
     await page.keyboard.press('Space');
     await page.waitForFunction(() => document.querySelectorAll('.pad.selected').length === 0);
     fs.mkdirSync('.artifacts', { recursive: true });

@@ -1,6 +1,8 @@
 
 // Native WebRTC data channels. Invitations carry complete SDP/ICE descriptions;
 // no database, signaling endpoint, STUN, or TURN service is contacted.
+import { defaultWaveforms, isWaveform, type Waveform } from './audio/waveforms';
+
 export interface SessionInfo {
     host: boolean;
     players: number[];
@@ -12,11 +14,13 @@ export class PeerSession {
     public userid = 0;
     public onStatus: (message: string) => void = () => {};
     public onClock: (offset: number) => void = () => {};
+    public onWaveform: (user: number, waveform: Waveform) => void = () => {};
     public onSessionChange: (session: SessionInfo) => void = () => {};
     private sessionPlayers = [0];
     private host = true;
     private peers = new Map<number, any>();
     private tracks: number[][] = this.emptyTracks();
+    private waveforms: Waveform[] = [...defaultWaveforms];
     private pending: any = null;
     private clockTimer: any;
     private clockSamples: number[] = [];
@@ -61,7 +65,21 @@ export class PeerSession {
     private broadcast(message: any): void {
         this.peers.forEach(peer => this.send(peer, message));
     }
-    private snapshot(): any { return { type: 'state', tracks: this.tracks, players: this.session.players }; }
+    private snapshot(): any { return { type: 'state', tracks: this.tracks, waveforms: this.waveforms, players: this.session.players }; }
+    private setWaveform(user: number, waveform: Waveform): void {
+        this.waveforms[user] = waveform;
+        this.onWaveform(user, waveform);
+    }
+    private renderWaveforms(values: unknown): void {
+        if (!Array.isArray(values) || values.length !== 4 || !values.every(isWaveform)) return;
+        values.forEach((waveform, user) => this.setWaveform(user, waveform));
+    }
+    public sendWaveform(waveform: Waveform): void {
+        if (!this.canEdit || this.userid === 1 || !isWaveform(waveform)) return;
+        this.setWaveform(this.userid, waveform);
+        if (this.host) this.broadcast({ type: 'waveform', user: this.userid, waveform });
+        else this.peers.forEach(peer => this.send(peer, { type: 'waveform', waveform }));
+    }
     private updatePlayers(players: any): void {
         if (Array.isArray(players) && players.length <= 4 &&
             players.every(user => Number.isInteger(user) && user >= 0 && user < 4)) {
@@ -76,6 +94,7 @@ export class PeerSession {
         this.tracks = tracks.map(row => row.slice());
         this.tracks.forEach((row, user) => row.forEach((note, step) => this.callback(user, step, note)));
     }
+    public get invitationToken(): string | null { return this.pending?.token ?? null; }
     public get canEdit(): boolean { return this.host || this.userid > 0; }
     public sendData(step: number, note: number): void {
         if (!this.canEdit || !this.validNote(step, note)) return;
@@ -93,6 +112,11 @@ export class PeerSession {
             if (message.type === 'ping' && Number.isFinite(message.sent)) {
                 this.send(peer, { type: 'pong', sent: message.sent, time: Date.now() });
             }
+            if (message.type === 'waveform' && peer.slot !== 1 && isWaveform(message.waveform)) {
+                this.setWaveform(peer.slot, message.waveform);
+                this.broadcast({ type: 'waveform', user: peer.slot, waveform: message.waveform });
+                return;
+            }
             if (message.type !== 'note' || !this.validNote(message.step, message.note)) return;
             // The connection determines the instrument, never a client supplied ID.
             this.tracks[peer.slot][message.step] = message.note;
@@ -103,13 +127,18 @@ export class PeerSession {
                 this.userid = message.user;
                 this.callbackID(this.userid);
                 this.renderState(message.tracks);
+                this.renderWaveforms(message.waveforms);
                 this.updatePlayers(message.players);
                 this.status('Connected as player ' + (this.userid + 1) + '.');
             } else if (message.type === 'state') {
                 this.renderState(message.tracks);
+                this.renderWaveforms(message.waveforms);
                 this.updatePlayers(message.players);
             }
-            else if (message.type === 'note' && Number.isInteger(message.user) && message.user >= 0 && message.user < 4 &&
+            else if (message.type === 'waveform' && Number.isInteger(message.user) && message.user >= 0 && message.user < 4 &&
+                     message.user !== 1 && isWaveform(message.waveform)) {
+                this.setWaveform(message.user, message.waveform);
+            } else if (message.type === 'note' && Number.isInteger(message.user) && message.user >= 0 && message.user < 4 &&
                      this.validNote(message.step, message.note)) {
                 this.tracks[message.user][message.step] = message.note;
                 this.callback(message.user, message.step, message.note);
@@ -133,7 +162,7 @@ export class PeerSession {
             clearTimeout(peer.timer);
             if (this.pending === peer) this.pending = null;
             if (this.host) {
-                this.send(peer, { type: 'welcome', user: peer.slot, tracks: this.tracks, players: this.session.players });
+                this.send(peer, { type: 'welcome', user: peer.slot, tracks: this.tracks, waveforms: this.waveforms, players: this.session.players });
                 this.broadcast(this.snapshot());
                 this.status(this.session.players.length + ' players in this session.');
             } else {
@@ -145,15 +174,15 @@ export class PeerSession {
     }
     private createPeer(slot: number): any {
         if (typeof RTCPeerConnection === 'undefined') throw new Error('This browser does not support WebRTC. Solo play is available.');
-        const peer: any = { slot, pc: new RTCPeerConnection({ iceServers: [] }) };
+        const peer: any = { slot, expires: Date.now() + 10 * 60 * 1000, pc: new RTCPeerConnection({ iceServers: [] }) };
         this.peers.set(slot, peer);
         peer.pc.onconnectionstatechange = () => {
             if (peer.pc.connectionState === 'failed' || peer.pc.connectionState === 'closed') this.drop(peer);
         };
         peer.timer = setTimeout(() => {
             this.drop(peer);
-            this.status('Connection timed out. Create a new invitation; these networks may need a relay service.');
-        }, 120000);
+            this.status('Could not connect. Keep both original tabs open and try on the same Wi-Fi. These networks may block direct connections.');
+        }, 10 * 60 * 1000);
         return peer;
     }
     private drop(peer: any): void {
@@ -164,6 +193,7 @@ export class PeerSession {
         peer.pc.close();
         if (this.host) {
             this.tracks[peer.slot].fill(-1);
+            this.setWaveform(peer.slot, defaultWaveforms[peer.slot]);
             for (let step = 0; step < 16; step++) this.callback(peer.slot, step, -1);
             this.broadcast(this.snapshot());
             this.status('Player disconnected. Their instrument is available again.');
@@ -176,6 +206,7 @@ export class PeerSession {
             this.onClock(0);
             this.callbackID(0);
             this.renderState(this.emptyTracks());
+            this.renderWaveforms(defaultWaveforms);
             this.status('Host disconnected. You now have a new solo session.');
         }
     }
@@ -192,7 +223,7 @@ export class PeerSession {
             pc.addEventListener('icegatheringstatechange', check);
             check();
         });
-        return JSON.stringify({ app: 'sharebeat', version: 1, token: peer.token, description: pc.localDescription });
+        return JSON.stringify({ app: 'sharebeat', version: 1, token: peer.token, expires: peer.expires, description: pc.localDescription });
     }
     private parse(code: string, type: string): any {
         if (code.length > 100000) throw new Error('Connection code is too large.');
@@ -202,6 +233,7 @@ export class PeerSession {
             !data.description || data.description.type !== type || typeof data.description.sdp !== 'string') {
             throw new Error('This is not a ShareBeat ' + type + ' code.');
         }
+        if (!Number.isFinite(data.expires) || data.expires < Date.now()) throw new Error('This link has expired. Create a new invitation.');
         return data;
     }
     public async createInvitation(): Promise<string> {
@@ -225,6 +257,7 @@ export class PeerSession {
         const peer = this.createPeer(0);
         this.host = false;
         peer.token = data.token;
+        peer.expires = data.expires;
         peer.pc.ondatachannel = event => this.attach(peer, event.channel);
         try {
             await peer.pc.setRemoteDescription(data.description);
@@ -235,7 +268,13 @@ export class PeerSession {
     public async acceptAnswer(code: string): Promise<void> {
         const data = this.parse(code, 'answer');
         if (!this.pending || this.pending.token !== data.token) throw new Error('This answer does not match the current invitation.');
-        await this.pending.pc.setRemoteDescription(data.description);
+        const peer = this.pending;
+        await peer.pc.setRemoteDescription(data.description);
+        clearTimeout(peer.timer);
+        peer.timer = setTimeout(() => {
+            this.drop(peer);
+            this.status('Could not connect. These networks may block direct connections. Try both devices on the same Wi-Fi.');
+        }, 20000);
     }
     public cancelInvitation(): void { if (this.pending) this.drop(this.pending); }
     public disconnect(): void {

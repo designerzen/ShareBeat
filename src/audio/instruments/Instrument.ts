@@ -1,3 +1,5 @@
+import { holdParam } from '../hold-param';
+
 export class Instrument {
     public gain: GainNode;
     public isPlaying = false;
@@ -26,13 +28,13 @@ export class Instrument {
 
     public fadeIn(time = 0.1): void {
         const now = this.context.currentTime;
-        this.gain.gain.cancelAndHoldAtTime(now);
+        holdParam(this.gain.gain, now);
         this.gain.gain.setTargetAtTime(this.amplitude, now, Math.max(0.003, time / 5));
     }
 
     public fadeOut(time = 0.1): void {
         const now = this.context.currentTime;
-        this.gain.gain.cancelAndHoldAtTime(now);
+        holdParam(this.gain.gain, now);
         this.gain.gain.setTargetAtTime(this.SILENCE, now, Math.max(0.003, time / 5));
     }
 }

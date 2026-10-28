@@ -57,8 +57,14 @@ test('four browsers share additions, removals, snapshots and released instrument
     const b = await page();
     await join(host, b, 'Drums');
     await selected(b, 34, 'A');
+    await host.locator('[data-action="waveform"]').click();
+    await b.waitForFunction(() => document.querySelector('share-beat').trackWaveforms[0] === 'triangle');
+    assert.equal(await b.locator('[data-action="waveform"]').count(), 0, 'drums keep their instrument label');
     const c = await page();
     await join(host, c, 'Bass');
+    assert.equal(await c.evaluate(() => document.querySelector('share-beat').trackWaveforms[0]), 'triangle', 'joining receives the selected waveform');
+    await c.locator('[data-action="waveform"]').click();
+    for (const p of pages) await p.waitForFunction(() => document.querySelector('share-beat').trackWaveforms[2] === 'triangle');
     const d = await page();
     await join(host, d, 'Saw');
     await b.locator('#matrix .pad').nth(51).click();
