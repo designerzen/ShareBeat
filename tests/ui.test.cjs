@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
 const fs = require('node:fs');
+const { startStun, useStun } = require('./helpers/stun.cjs');
 
 test('simple grid stays unobstructed and sharing is confined to an accessible dialog', { timeout: 60000 }, async () => {
   const { createServer } = await import('vite');
@@ -9,6 +10,8 @@ test('simple grid stays unobstructed and sharing is confined to an accessible di
   await server.listen();
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const stun = await startStun();
+  await useStun(page.context(), stun.url);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   try {
@@ -84,5 +87,5 @@ test('simple grid stays unobstructed and sharing is confined to an accessible di
       }
     }
     assert.deepEqual(errors, []);
-  } finally { await browser.close(); await server.close(); }
+  } finally { await browser.close(); await stun.close(); await server.close(); }
 });

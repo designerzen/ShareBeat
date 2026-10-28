@@ -1,16 +1,19 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { chromium } = require('playwright');
+const { startStun, useStun } = require('./helpers/stun.cjs');
 
 test('invitation and reply URLs connect four isolated sessions, including replies opened in new tabs', { timeout: 120000 }, async () => {
   const { createServer } = await import('vite');
   const server = await createServer({ server: { host: '127.0.0.1', port: 0 }, logLevel: 'error' });
   await server.listen();
   const browser = await chromium.launch();
+  const stun = await startStun();
   const pages = [], errors = [], external = [];
   const base = server.resolvedUrls.local[0];
   async function page() {
     const context = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] });
+    await useStun(context, stun.url);
     const p = await context.newPage();
     p.on('pageerror', error => errors.push(error.message));
     p.on('request', request => { if (!request.url().startsWith(base)) external.push(request.url()); });
@@ -113,5 +116,5 @@ test('invitation and reply URLs connect four isolated sessions, including replie
     }
     assert.deepEqual(errors, []);
     assert.deepEqual(external, [], 'no CDN or application-service HTTP requests');
-  } finally { await browser.close(); await server.close(); }
+  } finally { await browser.close(); await stun.close(); await server.close(); }
 });
