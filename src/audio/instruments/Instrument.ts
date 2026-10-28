@@ -1,83 +1,39 @@
+export class Instrument {
+    public gain: GainNode;
+    public isPlaying = false;
+    public hasInitialised = false;
+    public durationFadeIn = 0.1;
+    public durationFadeOut = 3;
+    public amplitude = 1;
+    public SILENCE = 0.00000001;
 
-// interface IPlugs
+    constructor(public context: AudioContext, outputTo: GainNode) {
+        this.gain = context.createGain();
+        this.gain.connect(outputTo);
+    }
 
-    export class Instrument
-    {
-		public context:AudioContext;
-		public gain:GainNode;
-		public isPlaying:boolean = false;
-		public hasInitialised:boolean = false;
-		
-		public durationFadeIn:number = 0.05;
-		public durationFadeOut:number = 3;
-		
-		public SILENCE:number = 0.00000001;//Number.MIN_VALUE*100000000000;
-		
-		/*
-		public set volume( vol:number=1 )
-		{
-			this.gain.gain = vol;
-		}
-		
-		public get volume( ):number
-		{
-			return this.gain.gain;
-		}
-		*/
-		
-		// create
-		constructor( audioContext:AudioContext, outputTo:GainNode )
-		{
-			this.context = audioContext;
-			this.gain = audioContext.createGain();
-			this.gain.connect( outputTo );
-		}
-		
-		public start( ...args: any[] ):void
-		{
-			var t:number = this.context.currentTime;
-			
-			this.isPlaying = true;
-			this.hasInitialised = true;
-			console.log( 'start ' +this.isPlaying  );
-		}
-		
-		public stop():void
-		{
-			if ( !this.hasInitialised || !this.isPlaying ) return;
-			
-			//this.gain.gain.value = 0;
-			//
-    			// An exception will be thrown if this value is less than or equal to 0,
-				// or if the value at the time of the previous event is less than or equal to 0.
-			//
-			this.fadeOut(this.durationFadeOut);
-			console.log( 'stop vol:', this.gain );
-			//if (this.gain.gain.value > 0 ) console.error('could not stop'+this);
-			this.isPlaying = false;
-			
-		}
-		
-		public fadeIn( time:number=0.1 ):void
-		{
-			var t:number = this.context.currentTime;
-			console.log( "fading out in "+time );
-			this.gain.gain.cancelScheduledValues( t );
-			this.gain.gain.exponentialRampToValueAtTime( 0.5, t + time );
-			this.gain.gain.setValueAtTime(0.5, t + time);	
-		}
-		
-		public onFaded(  ):void
-		{
-			alert("fade complete "+this.gain.gain);
-		}
-		public fadeOut( time:number=0.1 ):void
-		{
-			var t:number = this.context.currentTime;
-			console.log( "fading out in "+time );
-			this.gain.gain.cancelScheduledValues( t );
-			this.gain.gain.exponentialRampToValueAtTime( this.SILENCE, t + time );
-			this.gain.gain.setValueAtTime(0, t + time);	
-		}
-		
-	}
+    public start(...args: any[]): void {
+        this.isPlaying = true;
+        this.hasInitialised = true;
+    }
+
+    public stop(): void {
+        if (!this.hasInitialised || !this.isPlaying) return;
+        this.fadeOut(this.durationFadeOut);
+        this.isPlaying = false;
+    }
+
+    public fadeIn(time = 0.1): void {
+        const now = this.context.currentTime;
+        this.gain.gain.cancelScheduledValues(now);
+        this.gain.gain.exponentialRampToValueAtTime(this.amplitude, now + time);
+        this.gain.gain.setValueAtTime(this.amplitude, now + time + 0.01);
+    }
+
+    public fadeOut(time = 0.1): void {
+        const now = this.context.currentTime;
+        this.gain.gain.cancelScheduledValues(now);
+        this.gain.gain.exponentialRampToValueAtTime(this.SILENCE, now + time);
+        this.gain.gain.setValueAtTime(0, now + time + 0.01);
+    }
+}
