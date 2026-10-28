@@ -1,11 +1,15 @@
-const { test } = require('node:test');
+const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFile } = require('node:fs/promises');
+const { mkdtempSync, rmSync } = require('node:fs');
+const { tmpdir } = require('node:os');
 const path = require('node:path');
 const { chromium, firefox } = require('playwright');
 const origin = 'https://sharebeat.test';
 const base = origin + '/ShareBeat/';
-const output = path.resolve('.artifacts/cross-browser-dist');
+// Keep the build outside the repo so other tests' Vite watchers don't reload.
+const output = mkdtempSync(path.join(tmpdir(), 'sharebeat-cross-browser-'));
+after(() => rmSync(output, { recursive: true, force: true }));
 
 async function hostedPage(browser) {
   const context = await browser.newContext();
@@ -25,7 +29,7 @@ async function hostedPage(browser) {
   return context.newPage();
 }
 
-test('Chromium and Firefox connect in both directions at a public HTTPS origin without media permissions', { timeout: 120000 }, async () => {
+test('Chromium and Firefox connect in both directions at a public HTTPS origin with STUN discovery and without media permissions', { timeout: 120000 }, async () => {
   const { build } = await import('vite');
   await build({ base: '/ShareBeat/', build: { outDir: output }, logLevel: 'silent' });
   const chrome = await chromium.launch();
@@ -51,9 +55,9 @@ test('Chromium and Firefox connect in both directions at a public HTTPS origin w
       await guest.waitForSelector('.connected-message', { timeout: 25000 });
       await host.getByRole('button', { name: 'Close share dialog' }).click();
       await guest.getByRole('button', { name: 'Close share dialog' }).click();
-      await guest.waitForFunction(() => document.querySelectorAll('.pad')[34].classList.contains('userA'));
+      await guest.waitForFunction(() => document.querySelector('[data-player="0"] share-beat')?.querySelectorAll('.pad')[34].classList.contains('userA'));
       await guest.locator('.pad').nth(67).click();
-      await host.waitForFunction(() => document.querySelectorAll('.pad')[67].classList.contains('userB'));
+      await host.waitForFunction(() => document.querySelector('[data-player="1"] share-beat')?.querySelectorAll('.pad')[67].classList.contains('userB'));
       assert.deepEqual(errors, []);
       await host.context().close();
       await guest.context().close();
@@ -61,13 +65,13 @@ test('Chromium and Firefox connect in both directions at a public HTTPS origin w
   } finally { await chrome.close(); await fox.close(); }
 });
 
-test('a browser that blocks host candidates fails before sharing and records safe diagnostics', { timeout: 60000 }, async () => {
-  const browser = await firefox.launch({ firefoxUserPrefs: { 'media.peerconnection.ice.no_host': true } });
+test('a browser that blocks all usable candidates fails before sharing and records safe diagnostics', { timeout: 60000 }, async () => {
+  const browser = await firefox.launch({ firefoxUserPrefs: { 'media.peerconnection.ice.relay_only': true } });
   try {
     const page = await hostedPage(browser);
     await page.goto(base);
     await page.click('[data-action="share"]');
-    await page.waitForFunction(() => document.querySelector('#share-title')?.textContent === 'Connection failed', { timeout: 25000 });
+    await page.waitForFunction(() => document.querySelector('#share-title')?.textContent === 'Connection failed', null, { timeout: 25000 });
     assert.equal(await page.locator('#peer-output').count(), 0, 'never produce an unusable invitation');
     const message = (await page.locator('#peer-status').textContent()).trim();
     assert.ok(/connection addresses|gather connection details/.test(message), message);

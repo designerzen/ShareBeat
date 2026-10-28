@@ -64,7 +64,8 @@ test('independent grids use attributes and external audio controllers with isola
     await page.evaluate(async () => { window.gridA.setAttribute('oscillator-type', 'invalid'); await window.gridA.updateComplete; });
     assert.equal(await page.evaluate(() => window.contexts[0].oscillators.slice(-3)[0].type), 'sine', 'invalid types use a safe default');
     await page.locator('#a').evaluate(el => el.setAttribute('readonly', ''));
-    await page.locator('#a .pad').nth(129).click();
+    assert.equal(await page.locator('#a .pad').nth(129).isDisabled(), true);
+    await page.locator('#a .pad').nth(129).dispatchEvent('click');
     assert.equal(await page.locator('#a .pad.selected').count(), 1, 'readonly blocks edits');
     assert.deepEqual(await page.evaluate(() => window.notes.map(note => note.target)), ['visual', 'a', 'b']);
     await page.evaluate(() => window.gridA.remove());

@@ -1,4 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
 import { PeerSession, type SessionInfo } from './peer-session';
 import { createSignalLink, readSignalLink, type SignalLink } from './signal-links';
 import { networkPermissions, type ConnectionDiagnostics } from './connection-diagnostics';
@@ -9,6 +10,7 @@ import { GridAudioController } from './audio/grid-audio-controller';
 import type { ShareBeat, NoteChangeDetail } from './share-beat';
 
 type Flow = 'idle' | 'host' | 'waiting' | 'connecting' | 'delivered' | 'return' | 'failed';
+type ViewMode = 'stacked' | 'grid' | 'rows';
 
 export class ShareBeatApp extends LitElement {
     static properties = {
@@ -16,7 +18,8 @@ export class ShareBeatApp extends LitElement {
         status: { state: true }, receivedLink: { state: true }, outputLink: { state: true },
         busy: { state: true }, flow: { state: true },
         session: { state: true }, error: { state: true }, copied: { state: true },
-        trackWaveforms: { state: true }, diagnostics: { state: true }
+        trackWaveforms: { state: true }, diagnostics: { state: true },
+        viewMode: { state: true }, playbackStep: { state: true }
     };
     declare private tracks: number[][];
     declare private user: number;
@@ -31,6 +34,8 @@ export class ShareBeatApp extends LitElement {
     declare private copied: boolean;
     declare private trackWaveforms: Waveform[];
     declare private diagnostics: ConnectionDiagnostics | null;
+    declare private viewMode: ViewMode;
+    declare private playbackStep: number;
     private peer = new PeerSession(
         (user, step, note) => this.setNote(user, step, note),
         user => { this.user = user; }
@@ -57,6 +62,8 @@ export class ShareBeatApp extends LitElement {
         this.error = '';
         this.copied = false;
         this.diagnostics = null;
+        this.viewMode = 'stacked';
+        this.playbackStep = -1;
     }
     protected createRenderRoot() { return this; }
     connectedCallback(): void {
@@ -181,6 +188,7 @@ export class ShareBeatApp extends LitElement {
     }
     private noteChanged(event: CustomEvent<NoteChangeDetail>): void {
         const { user, step, note } = event.detail;
+        if (user !== this.user || !this.peer.canEdit) return;
         this.setNote(user, step, note);
         this.peer.sendData(step, note);
     }
@@ -276,13 +284,48 @@ export class ShareBeatApp extends LitElement {
         this.querySelector<HTMLDialogElement>('#share-dialog').close();
         this.querySelector<HTMLButtonElement>('[data-action="share"]').focus();
     }
+    private playerLabel(user: number): string {
+        const instrument = user === 1 ? 'Drums' :
+            (user === 2 ? 'Bass · ' : '') + ({ sine: 'Sine', triangle: 'Triangle', square: 'Square', sawtooth: 'Saw' })[this.trackWaveforms[user]];
+        return `${user === this.user ? 'You' : 'Player ' + (user + 1)} · ${instrument}`;
+    }
+    private playerStyle(user: number): string {
+        return `--player-color: ${['#aa2416', '#b59e3e', '#347d3e', '#5f4a69'][user]}; --marker-x: ${user % 2 * 50}%; --marker-y: ${Math.floor(user / 2) * 50}%;`;
+    }
     protected render() {
+        const others = this.session.players.filter(user => user !== this.user).sort();
+        const multiplayer = others.length > 0;
         return html`
             <main class=${'surface instrument-' + this.user} aria-label="ShareBeat synthesizer">
-                <share-beat .tracks=${this.tracks} .user=${this.user} .trackWaveforms=${this.trackWaveforms}
-                    oscillator-type=${this.trackWaveforms[this.user]} clock-offset=${this.clockOffset}
-                    ?readonly=${!this.peer.canEdit} @note-change=${this.noteChanged}
-                    @audio-error=${(event: CustomEvent<Error>) => { this.error = 'Audio could not start: ' + event.detail.message; }}></share-beat>
+                <section class=${'session-stage ' + (multiplayer ? 'multiplayer ' + this.viewMode : 'solo')} aria-label="Player grids">
+                    ${multiplayer ? html`
+                        <div class="view-modes" role="group" aria-label="Player view">
+                            ${(['stacked', 'grid', 'rows'] as const).map(mode => html`
+                                <button type="button" data-view=${mode} aria-pressed=${this.viewMode === mode}
+                                    @click=${() => { this.viewMode = mode; }}>${({ stacked: 'Stacked', grid: 'Grid', rows: 'Rows' })[mode]}</button>`)}
+                        </div>
+                        <ul class="player-legend" aria-label="Players">
+                            ${[this.user, ...others].map(user => html`<li style=${this.playerStyle(user)}>${this.playerLabel(user)}</li>`)}
+                        </ul>` : nothing}
+                    <div class=${'player-views ' + (multiplayer ? this.viewMode : 'solo')}>
+                        <div class="player-panel local-player" data-player=${this.user} style=${this.playerStyle(this.user)}>
+                            <p class="player-label" ?hidden=${!multiplayer}>${this.playerLabel(this.user)}</p>
+                            <share-beat .tracks=${this.tracks} .user=${this.user} .trackWaveforms=${this.trackWaveforms}
+                                display-user=${this.user} role="group" aria-label=${this.playerLabel(this.user)}
+                                oscillator-type=${this.trackWaveforms[this.user]} clock-offset=${this.clockOffset}
+                                ?readonly=${!this.peer.canEdit} @note-change=${this.noteChanged}
+                                @step-change=${(event: CustomEvent<number>) => { this.playbackStep = event.detail; }}
+                                @audio-error=${(event: CustomEvent<Error>) => { this.error = 'Audio could not start: ' + event.detail.message; }}></share-beat>
+                        </div>
+                        ${repeat(others, user => user, user => html`
+                            <div class="player-panel remote-player" data-player=${user} style=${this.playerStyle(user)}>
+                                <p class="player-label">${this.playerLabel(user)} <span>View only</span></p>
+                                <share-beat readonly role="group" .tracks=${this.tracks} .user=${user} .step=${this.playbackStep}
+                                    display-user=${user} oscillator-type=${this.trackWaveforms[user]}
+                                    aria-label=${this.playerLabel(user) + ', view only'}></share-beat>
+                            </div>`)}
+                    </div>
+                </section>
                 <footer class="grid-tools">
                     ${this.user === 1 ? html`<span class="instrument-name">Drums</span>` : html`
                         <button type="button" class="instrument-name" data-action="waveform"

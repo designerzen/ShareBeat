@@ -13,7 +13,8 @@ export class ShareBeat extends LitElement {
         trackWaveforms: { attribute: false },
         oscillatorType: { attribute: 'oscillator-type', reflect: true },
         clockOffset: { type: Number, attribute: 'clock-offset' },
-        bpm: { type: Number }, readOnly: { type: Boolean, attribute: 'readonly' }
+        bpm: { type: Number }, readOnly: { type: Boolean, attribute: 'readonly' },
+        displayUser: { type: Number, attribute: 'display-user' }
     };
     declare public tracks: number[][];
     declare public user: number;
@@ -23,6 +24,7 @@ export class ShareBeat extends LitElement {
     declare public clockOffset: number;
     declare public bpm: number;
     declare public readOnly: boolean;
+    declare public displayUser: number;
     private focusedCell = 128;
 
     constructor() {
@@ -35,6 +37,7 @@ export class ShareBeat extends LitElement {
         this.clockOffset = 0;
         this.bpm = 200;
         this.readOnly = false;
+        this.displayUser = -1;
     }
     protected createRenderRoot() { return this; }
     private selectCell(cell: number): void {
@@ -49,6 +52,7 @@ export class ShareBeat extends LitElement {
         }));
     }
     private keyCell(event: KeyboardEvent, cell: number): void {
+        if (this.readOnly) return;
         const offset = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -16, ArrowDown: 16 }[event.key];
         if (offset === undefined) return;
         event.preventDefault();
@@ -62,13 +66,14 @@ export class ShareBeat extends LitElement {
                 <div class="matrix" aria-label="16 step synthesizer">
                     ${Array.from({ length: 256 }, (_, cell) => {
                         const step = cell % 16, row = Math.floor(cell / 16);
-                        const active = this.tracks.map(track => track[step] === row);
-                        return html`<button type="button" tabindex=${cell === this.focusedCell ? 0 : -1}
+                        const active = this.tracks.map((track, user) =>
+                            (this.displayUser < 0 || this.displayUser === user) && track[step] === row);
+                        return html`<button type="button" ?disabled=${this.readOnly} tabindex=${!this.readOnly && cell === this.focusedCell ? 0 : -1}
                             aria-label=${'Step ' + (step + 1) + ', note ' + (16 - row)}
                             aria-pressed=${active[this.user] ? 'true' : 'false'}
                             class=${classMap({ pad: true, selected: active.some(Boolean), current: this.step === step,
                                 alternate: step % 2 === 0, userA: active[0], userB: active[1], userC: active[2], userD: active[3] })}
-                            @pointerdown=${(event: PointerEvent) => { if (event.button === 0) {
+                            @pointerdown=${(event: PointerEvent) => { if (!this.readOnly && event.button === 0) {
                                 event.preventDefault(); this.focusedCell = cell; (event.currentTarget as HTMLElement).focus(); this.selectCell(cell);
                             } }}
                             @pointerover=${(event: PointerEvent) => { if (event.buttons === 1 && event.pointerType === 'mouse') this.selectCell(cell); }}

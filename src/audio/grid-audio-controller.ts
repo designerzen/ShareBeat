@@ -34,7 +34,10 @@ export class GridAudioController implements ReactiveController {
     public async start(): Promise<void> {
         if (!this.grid.isConnected) return;
         if (this.starting) return this.starting;
-        if (!this.player) this.player = new BeatPlayer(step => { this.grid.step = step; });
+        if (!this.player) this.player = new BeatPlayer(step => {
+            this.grid.step = step;
+            this.grid.dispatchEvent(new CustomEvent('step-change', { detail: step }));
+        });
         this.hostUpdated();
         const player = this.player;
         const starting = player.start();

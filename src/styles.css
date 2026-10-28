@@ -24,7 +24,45 @@ share-beat-app { display: block; }
 }
 .instrument-1 { --background: #cd6f15; --cell: #e3bc96; --alternate: #d9a26e; }
 .instrument-3 { --background: #10110c; --cell: #8c8d8a; --alternate: #737371; color: #eee; }
-.surface > share-beat { width: min(100%, calc(100dvh - 80px)); --cell: inherit; --alternate: inherit; }
+.session-stage { width: min(100%, calc(100dvh - 80px)); min-width: 0; }
+.session-stage.multiplayer { width: min(100%, calc(100dvh - 190px)); }
+.session-stage.grid { width: min(100%, 1400px); }
+.session-stage.rows { width: min(100%, 650px); }
+.session-stage share-beat { --cell: inherit; --alternate: inherit; }
+.player-views { display: grid; gap: 20px; }
+.player-panel { min-width: 0; }
+.player-label { margin: 0 0 8px; font-size: 13px; }
+.player-label::before, .player-legend li::before {
+  content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 7px;
+  border-radius: 50%; background: var(--player-color); border: 1px solid #0002;
+}
+.player-label span { margin-left: 6px; font-size: 11px; opacity: .7; }
+.view-modes { display: flex; justify-content: center; gap: 4px; margin-bottom: 12px; }
+.view-modes button {
+  min-height: 36px; padding: 6px 14px; border: 1px solid currentColor;
+  border-radius: 4px; background: transparent; color: inherit; font-size: 12px;
+}
+.view-modes button[aria-pressed="true"] { background: #10110c; border-color: #10110c; color: #fff; }
+.instrument-3 .view-modes button[aria-pressed="true"] { background: #eee; border-color: #eee; color: #10110c; }
+.player-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; margin: 0 0 12px; padding: 0; list-style: none; font-size: 12px; }
+.session-stage.grid .player-legend, .session-stage.rows .player-legend { display: none; }
+.player-views.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.player-views.grid .player-label { height: 36px; line-height: 18px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.player-views.grid .player-label span { display: block; margin-left: 0; line-height: 18px; }
+.player-views.stacked { gap: 0; }
+.player-views.stacked .player-panel { grid-area: 1 / 1; }
+.player-views.stacked .player-label { display: none; }
+.player-views.stacked .remote-player { pointer-events: none; }
+/* Every player gets a quadrant of a lit pad, so coincident notes all remain visible. */
+.player-views.stacked share-beat .pad.selected { background: var(--cell); }
+.player-views.stacked share-beat .pad.selected.alternate { background: var(--alternate); }
+.player-views.stacked .remote-player share-beat .pad,
+.player-views.stacked .remote-player share-beat .pad.selected.alternate { background: transparent; }
+.player-views.stacked .remote-player share-beat .pad.current::after { display: none; }
+.player-views.stacked share-beat .pad.selected::before {
+  content: ""; position: absolute; width: 50%; height: 50%;
+  left: var(--marker-x); top: var(--marker-y); background: var(--player-color); pointer-events: none;
+}
 .grid-tools {
   position: fixed;
   bottom: 0;

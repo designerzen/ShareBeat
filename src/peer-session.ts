@@ -1,6 +1,6 @@
 
-// Native WebRTC data channels. Invitations carry complete SDP/ICE descriptions;
-// no database, signaling endpoint, STUN, or TURN service is contacted.
+// Native WebRTC data channels. Links carry SDP/ICE; STUN discovers reachable
+// addresses. No database, signaling endpoint, or TURN relay is used.
 import { defaultWaveforms, isWaveform, type Waveform } from './audio/waveforms';
 import { connectionDiagnostics, summarizeCandidates, type ConnectionDiagnostics } from './connection-diagnostics';
 
@@ -187,7 +187,9 @@ export class PeerSession {
     }
     private createPeer(slot: number): any {
         if (typeof RTCPeerConnection === 'undefined') throw new Error('This browser does not support WebRTC. Solo play is available.');
-        const peer: any = { slot, expires: Date.now() + 10 * 60 * 1000, pc: new RTCPeerConnection({ iceServers: [] }) };
+        const peer: any = { slot, expires: Date.now() + 10 * 60 * 1000, pc: new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        }) };
         this.peers.set(slot, peer);
         const checkConnection = () => {
             if (peer.pc.connectionState === 'failed' || peer.pc.iceConnectionState === 'failed') {
@@ -236,7 +238,10 @@ export class PeerSession {
                 error ? reject(error) : resolve();
             };
             const check = () => { if (pc.iceGatheringState === 'complete') finish(); };
-            const timer = setTimeout(() => finish(new Error('Could not gather connection details. Try again.')), 15000);
+            // If STUN is unavailable, preserve LAN-only operation using any host
+            // candidates already gathered, rather than discarding a usable link.
+            const timer = setTimeout(() => finish(summarizeCandidates(pc.localDescription?.sdp).total
+                ? undefined : new Error('The browser did not provide connection addresses. Allow local-network/WebRTC access for this site, then try again.')), 15000);
             pc.addEventListener('icegatheringstatechange', check);
             check();
         });
