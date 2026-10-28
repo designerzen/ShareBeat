@@ -2,6 +2,10 @@
 
 A browser synthesizer built with Lit, TypeScript, Vite, Web Audio, and native WebRTC. Up to four players share a pattern without accounts or an application backend.
 
+**[Try ShareBeat on GitHub Pages](https://designerzen.github.io/ShareBeat/)**
+
+Click the grid to enable audio and add or remove notes. To play together, open the app on each device and follow the invitation steps below.
+
 ## Run locally
 
 Install Node.js 22.12+ (Node.js 20.19+ is also supported), then run from the repository root:
@@ -30,7 +34,7 @@ In the repository's **Settings → Pages → Build and deployment**, set **Sourc
 
 The workflow installs dependencies, tests four-player sessions in Chromium, builds the site with the correct Pages base path, and deploys `dist/`. No deployment secrets are needed.
 
-After the first successful deployment, try the app at [designerzen.github.io/ShareBeat/](https://designerzen.github.io/ShareBeat/). The deployed URL is also shown in the workflow's `github-pages` environment.
+The site is published at [designerzen.github.io/ShareBeat/](https://designerzen.github.io/ShareBeat/) after a successful deployment. The deployed URL is also shown in the workflow's `github-pages` environment.
 
 ## Play with friends
 
